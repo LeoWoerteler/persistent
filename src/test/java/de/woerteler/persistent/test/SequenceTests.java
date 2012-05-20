@@ -1,6 +1,6 @@
 package de.woerteler.persistent.test;
 
-import java.util.Iterator;
+import java.util.*;
 
 import org.junit.*;
 import de.woerteler.persistent.Sequence;
@@ -63,7 +63,7 @@ public class SequenceTests {
   @Test
   public void toArrayTSmall() {
     assertArrayEquals(new Integer[] { 123 },
-        Sequence.empty().cons(123).toArray(new Integer[0]));
+        Sequence.singleton(123).toArray(new Integer[0]));
   }
 
   /**
@@ -73,6 +73,44 @@ public class SequenceTests {
   @Test
   public void toArrayTBig() {
     final Integer[] in = new Integer[3];
-    assertSame("same array", in, Sequence.empty().cons(1).cons(2).cons(3).toArray(in));
+    assertSame("same array", in, Sequence.from(1, 2, 3).toArray(in));
+  }
+
+  /** Tests if a drained iterator throws {@link NoSuchElementException}. */
+  @Test(expected = NoSuchElementException.class)
+  public void drainedError() {
+    Sequence.empty().iterator().next();
+  }
+
+  /** Tests if {@link Iterator#remove()} throws {@link UnsupportedOperationException}. */
+  @Test(expected = UnsupportedOperationException.class)
+  public void removeError() {
+    Sequence.empty().iterator().remove();
+  }
+
+  /** Tests if sequences can be created from arrays. */
+  @Test public void fromArray() {
+    assertSame(Sequence.empty(), Sequence.from(new Integer[0]));
+    for(int len : new int[] { 1, Sequence.SIZE + Sequence.SIZE / 2, 2 * Sequence.SIZE }) {
+      final Integer[] arr = new Integer[len];
+      for(int j = 0; j < len; j++) arr[j] = j;
+      final Sequence<Integer> seq = Sequence.from(arr);
+      assertEquals("size", len, seq.length());
+      for(int j = 0; j < len; j++) assertEquals("element", (Integer) j, seq.get(j));
+    }
+  }
+
+  /** Tests if sequences can be created from {@link Iterable}s. */
+  @Test public void fromIterable() {
+    assertSame(Sequence.empty(), Sequence.from(Collections.emptyList()));
+    final Sequence<Integer> single = Sequence.singleton(42);
+    assertSame(single, Sequence.from(single));
+    for(int len : new int[] { 1, Sequence.SIZE + Sequence.SIZE / 2, 2 * Sequence.SIZE }) {
+      final List<Integer> list = new ArrayList<Integer>(len);
+      for(int j = 0; j < len; j++) list.add(j);
+      final Sequence<Integer> seq = Sequence.from(list);
+      assertEquals("size", len, seq.length());
+      for(int j = 0; j < len; j++) assertEquals("element", (Integer) j, seq.get(j));
+    }
   }
 }

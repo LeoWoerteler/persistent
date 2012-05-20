@@ -14,9 +14,9 @@ public final class Sequence<T> implements Iterable<T>, RandomAccess {
   private final Node root;
 
   /** Number of bits per step. */
-  private static final int BITS = 6;
+  private static final int BITS = 5;
   /** Maximum size of nodes. */
-  private static final int SIZE = 1 << BITS;
+  public static final int SIZE = 1 << BITS;
   /** Bit mask for the last {@code BITS} bits in an {@code int}. */
   private static final int LAST = SIZE - 1;
 
@@ -44,6 +44,67 @@ public final class Sequence<T> implements Iterable<T>, RandomAccess {
   @SuppressWarnings("unchecked")
   public static <T> Sequence<T> empty() {
     return (Sequence<T>) EMPTY;
+  }
+
+  /**
+   * Creates a singleton sequence containing the given element.
+   * @param <T> element type
+   * @param t element
+   * @return singleton sequence
+   */
+  public static <T> Sequence<T> singleton(final T t) {
+    return Sequence.<T>empty().cons(t);
+  }
+
+  /**
+   * Creates a sequence from an {@link Iterable}.
+   *
+   * @param <T> The type of the elements.
+   * @param it The {@link Iterable}.
+   * @return The sequence containing all elements from
+   *  the {@link Iterable} in the given order.
+   */
+  public static <T> Sequence<T> from(final Iterable<T> it) {
+    if(it instanceof Sequence) return (Sequence<T>) it;
+    final Iterator<?> iter = it.iterator();
+    if(!iter.hasNext()) return empty();
+
+    Object[] cache = new Object[SIZE];
+    Node root = null;
+    int pos = 0;
+    do {
+      cache[pos++] = iter.next();
+      if(pos == SIZE) {
+        final Node nd = new Node(cache, 1, 0);
+        root = root == null ? nd : root.insert(nd);
+        pos = 0;
+        cache = new Object[SIZE];
+      }
+    } while(iter.hasNext());
+    return new Sequence<T>(root, Arrays.copyOf(cache, pos));
+  }
+
+  /**
+   * Creates a sequence from an array.
+   *
+   * @param <T> The type of elements.
+   * @param array The array.
+   * @return The sequence containing all elements from the array in the same order.
+   */
+  public static <T> Sequence<T> from(final T... array) {
+    if(array.length == 0) return empty();
+    Node root = null;
+    int pos = 0;
+    while(pos + SIZE <= array.length) {
+      final Object[] leaf = new Object[SIZE];
+      System.arraycopy(array, pos, leaf, 0, SIZE);
+      final Node curr = new Node(leaf, 1, 0);
+      root = root == null ? curr : root.insert(curr);
+      pos += SIZE;
+    }
+    final Object[] cache = new Object[array.length - pos];
+    if(cache.length > 0) System.arraycopy(array, pos, cache, 0, cache.length);
+    return new Sequence<T>(root, cache);
   }
 
   /**
@@ -276,7 +337,14 @@ public final class Sequence<T> implements Iterable<T>, RandomAccess {
      * @return string builder for convenience
      */
     public StringBuilder toString(final StringBuilder sb) {
-      return sb.append("Node(").append(level).append(")").append(Arrays.toString(subs));
+      if(level == 0) sb.append("Leaf[");
+      else sb.append("Node(").append(level).append(")[");
+      for(int i = 0; i < subs.length; i++) {
+        if(i > 0) sb.append(", ");
+        if(level == 0) sb.append(subs[i]);
+        else ((Node) subs[i]).toString(sb);
+      }
+      return sb.append(']');
     }
   }
 }
