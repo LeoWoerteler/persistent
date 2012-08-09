@@ -48,7 +48,7 @@ public final class ImmutableMap<K, V> {
    * @return empty map
    */
   public static <K, V> ImmutableMap<K, V> singleton(final K key, final V value) {
-    return ImmutableMap.<K, V>empty().insert(key, value);
+    return new ImmutableMap<K, V>(TrieNode.EMPTY.insert(key.hashCode(), key, value, 0));
   }
 
   /**
@@ -98,9 +98,8 @@ public final class ImmutableMap<K, V> {
    * @return updated map if changed, {@code this} otherwise
    */
   public ImmutableMap<K, V> addAll(final ImmutableMap<K, V> other) {
-    if(other == EMPTY) return this;
     final TrieNode upd = root.addAll(other.root, 0);
-    return upd == other.root ? other : new ImmutableMap<K, V>(upd);
+    return upd == root ? this : upd == other.root ? other : new ImmutableMap<K, V>(upd);
   }
 
   /**

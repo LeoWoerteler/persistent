@@ -9,7 +9,7 @@ import java.util.*;
  * @author Leo Woerteler
  * @param <T> type of the values in this collection
  */
-public final class Sequence<T> implements Iterable<T>, RandomAccess {
+public final class TrieSequence<T> implements PersistentSequence<T>, RandomAccess {
   /** Root node. */
   private final Node root;
 
@@ -21,7 +21,8 @@ public final class Sequence<T> implements Iterable<T>, RandomAccess {
   private static final int LAST = SIZE - 1;
 
   /** the empty sequence. */
-  public static final Sequence<?> EMPTY = new Sequence<Object>(null, new Object[0]);
+  public static final TrieSequence<?> EMPTY =
+      new TrieSequence<Object>(null, new Object[0]);
 
   /** Insertion buffer. */
   final Object[] cache;
@@ -31,7 +32,7 @@ public final class Sequence<T> implements Iterable<T>, RandomAccess {
    * @param r root node
    * @param ch cache
    */
-  private Sequence(final Node r, final Object[] ch) {
+  private TrieSequence(final Node r, final Object[] ch) {
     root = r;
     cache = ch;
   }
@@ -39,11 +40,11 @@ public final class Sequence<T> implements Iterable<T>, RandomAccess {
   /**
    * The generic empty sequence.
    * @param <T> type of the sequence's elements
-   * @return {@link Sequence#EMPTY} with generic type
+   * @return {@link TrieSequence#EMPTY} with generic type
    */
   @SuppressWarnings("unchecked")
-  public static <T> Sequence<T> empty() {
-    return (Sequence<T>) EMPTY;
+  public static <T> TrieSequence<T> empty() {
+    return (TrieSequence<T>) EMPTY;
   }
 
   /**
@@ -52,8 +53,8 @@ public final class Sequence<T> implements Iterable<T>, RandomAccess {
    * @param t element
    * @return singleton sequence
    */
-  public static <T> Sequence<T> singleton(final T t) {
-    return Sequence.<T>empty().cons(t);
+  public static <T> TrieSequence<T> singleton(final T t) {
+    return TrieSequence.<T>empty().add(t);
   }
 
   /**
@@ -64,8 +65,8 @@ public final class Sequence<T> implements Iterable<T>, RandomAccess {
    * @return The sequence containing all elements from
    *  the {@link Iterable} in the given order.
    */
-  public static <T> Sequence<T> from(final Iterable<T> it) {
-    if(it instanceof Sequence) return (Sequence<T>) it;
+  public static <T> TrieSequence<T> from(final Iterable<T> it) {
+    if(it instanceof TrieSequence) return (TrieSequence<T>) it;
     final Iterator<?> iter = it.iterator();
     if(!iter.hasNext()) return empty();
 
@@ -75,13 +76,13 @@ public final class Sequence<T> implements Iterable<T>, RandomAccess {
     do {
       cache[pos++] = iter.next();
       if(pos == SIZE) {
-        final Node nd = new Node(cache, 1, 0);
+        final Node nd = new Node(cache);
         root = root == null ? nd : root.insert(nd);
         pos = 0;
         cache = new Object[SIZE];
       }
     } while(iter.hasNext());
-    return new Sequence<T>(root, Arrays.copyOf(cache, pos));
+    return new TrieSequence<T>(root, Arrays.copyOf(cache, pos));
   }
 
   /**
@@ -91,53 +92,42 @@ public final class Sequence<T> implements Iterable<T>, RandomAccess {
    * @param array The array.
    * @return The sequence containing all elements from the array in the same order.
    */
-  public static <T> Sequence<T> from(final T... array) {
+  public static <T> TrieSequence<T> from(final T... array) {
     if(array.length == 0) return empty();
     Node root = null;
     int pos = 0;
     while(pos + SIZE <= array.length) {
       final Object[] leaf = new Object[SIZE];
       System.arraycopy(array, pos, leaf, 0, SIZE);
-      final Node curr = new Node(leaf, 1, 0);
+      final Node curr = new Node(leaf);
       root = root == null ? curr : root.insert(curr);
       pos += SIZE;
     }
     final Object[] cache = new Object[array.length - pos];
     if(cache.length > 0) System.arraycopy(array, pos, cache, 0, cache.length);
-    return new Sequence<T>(root, cache);
+    return new TrieSequence<T>(root, cache);
   }
 
-  /**
-   * Returns the size of this sequence.
-   * @return number of items
-   */
-  public int length() {
+  @Override
+  public int size() {
     return (root == null ? 0 : root.size * SIZE) + cache.length;
   }
 
-  /**
-   * Adds the given item at the end of the sequence.
-   * @param it item to add
-   * @return copy of this sequence where the item is added
-   */
-  public Sequence<T> cons(final T it) {
+  @Override
+  public TrieSequence<T> add(final T it) {
     final int cl = cache.length;
     final Object[] newCache = new Object[cl + 1];
     if(cl > 0) System.arraycopy(cache, 0, newCache, 0, cl);
     newCache[cl] = it;
 
     // cache is flushed only when it's full
-    if(cl < LAST) return new Sequence<T>(root, newCache);
+    if(cl < LAST) return new TrieSequence<T>(root, newCache);
     // insert the full cache into the tree
-    final Node l = new Node(newCache, 1, 0);
-    return new Sequence<T>(root == null ? l : root.insert(l), EMPTY.cache);
+    final Node l = new Node(newCache);
+    return new TrieSequence<T>(root == null ? l : root.insert(l), EMPTY.cache);
   }
 
-  /**
-   * Get the item at the given position.
-   * @param pos position
-   * @return item at that position
-   */
+  @Override
   @SuppressWarnings("unchecked")
   public T get(final int pos) {
     if(root != null && pos < root.size << BITS) {
@@ -148,6 +138,70 @@ public final class Sequence<T> implements Iterable<T>, RandomAccess {
     return (T) cache[pos & LAST];
   }
 
+  /**
+   * Appends the given sequence to this one.
+   * @param sequence sequence to append
+   * @return copy of this sequence where <code>seq</code> is appended
+   */
+  @Override
+  @SuppressWarnings("unchecked")
+  public PersistentSequence<T> append(final PersistentSequence<? extends T> sequence) {
+    if(sequence.size() == 0) return this;
+    if(this == EMPTY) return (PersistentSequence<T>) sequence;
+
+    if(!(sequence instanceof TrieSequence)) {
+      TrieSequence<T> seq = this;
+      for(final T elem : sequence) seq = seq.add(elem);
+      return seq;
+    }
+
+    final TrieSequence<? extends T> seq = (TrieSequence<? extends T>) sequence;
+    if(cache.length == 0) return fastAppend(seq);
+
+    // cache is non-empty, so all chunks have to be shifted
+    Node node = root;
+    final Iterator<Node> iter = seq.nodeIterator();
+    final int len = cache.length, rest = SIZE - len;
+    Object[] curr = Arrays.copyOf(cache, SIZE);
+    while(iter.hasNext()) {
+      final Object[] chunk = iter.next().subs;
+      System.arraycopy(chunk, 0, curr, len, rest);
+      node = node == null ? new Node(curr) : node.insert(new Node(curr));
+      curr = Arrays.copyOfRange(chunk, rest, rest + SIZE);
+    }
+
+    final int clen = seq.cache.length;
+    if(clen == 0) return new TrieSequence<T>(node, Arrays.copyOf(curr, cache.length));
+
+    if(clen < rest) {
+      // cache fits into current chunk
+      final Object[] newCache = Arrays.copyOf(curr, len + clen);
+      System.arraycopy(seq.cache, 0, newCache, len, clen);
+      return new TrieSequence<T>(node, newCache);
+    }
+
+    // insert additional chunk first
+    System.arraycopy(seq.cache, 0, curr, len, rest);
+    final Object[] newCache = Arrays.copyOfRange(seq.cache, rest, clen);
+    node = node == null ? new Node(curr) : node.insert(new Node(curr));
+    return new TrieSequence<T>(node, newCache);
+  }
+
+  /**
+   * Faster version of {@link #append(PersistentSequence)} if {@link #cache} is empty.
+   * This allows for all leaf nodes to be shared. Sharing would be possible for inner
+   * nodes up to height {@code Integer.numberOfTrailingZeros(seq.size())}, but isn't
+   * implemented.
+   * @param seq Sequence to append
+   * @return new sequence
+   */
+  private TrieSequence<T> fastAppend(final TrieSequence<? extends T> seq) {
+    Node node = root;
+    final Iterator<Node> iter = seq.nodeIterator();
+    while(iter.hasNext()) node = node.insert(iter.next());
+    return new TrieSequence<T>(node, seq.cache);
+  }
+
   @Override
   public String toString() {
     final StringBuilder sb = new StringBuilder("Sequence[");
@@ -156,10 +210,10 @@ public final class Sequence<T> implements Iterable<T>, RandomAccess {
   }
 
   /**
-   * Iterates through the value chunks.
+   * Iterates through the leaf nodes.
    * @return iterator
    */
-  private Iterator<Object[]> chunkIterator() {
+  private Iterator<Node> nodeIterator() {
     final Node[] anc = new Node[root == null ? 0 : root.level + 1];
     final int[] poss = new int[anc.length];
 
@@ -173,26 +227,18 @@ public final class Sequence<T> implements Iterable<T>, RandomAccess {
     }
 
     final int pp = p;
-    return new Iterator<Object[]>() {
+    return new Iterator<Node>() {
       /** Stack position. */
       int pos = pp;
-      /** The cache has still to be served. */
-      boolean ch = cache.length > 0;
       @Override
       public boolean hasNext() {
-        return pos >= 0 || ch;
+        return pos >= 0;
       }
 
       @Override
-      public Object[] next() {
-        // serve non-empty cache when finished
-        if(pos < 0) {
-          if(ch ^= true) throw new NoSuchElementException();
-          return cache;
-        }
-
+      public Node next() {
         // next result is always on top
-        final Object[] next = anc[pos].subs;
+        final Node next = anc[pos];
         // leave all exhausted nodes
         do if(--pos < 0) return next;
         while(poss[pos] == anc[pos].subs.length - 1);
@@ -204,6 +250,41 @@ public final class Sequence<T> implements Iterable<T>, RandomAccess {
           poss[++pos] = 0;
         } while(anc[pos].level > 0);
         return next;
+      }
+
+      @Override
+      public void remove() {
+        throw new UnsupportedOperationException();
+      }
+    };
+  }
+
+  /**
+   * Iterates through the value chunks.
+   * @return iterator
+   */
+  private Iterator<Object[]> chunkIterator() {
+    final Iterator<Node> iter = nodeIterator();
+    return new Iterator<Object[]>() {
+      /** Node iterator, {@code null} if drained. */
+      Iterator<Node> nodes = iter.hasNext() ? iter : null;
+      /** Cache position. */
+      boolean serveCache = cache.length > 0;
+      @Override
+      public boolean hasNext() {
+        return nodes != null || serveCache;
+      }
+
+      @Override
+      public Object[] next() {
+        if(nodes != null) {
+          final Node next = nodes.next();
+          if(!nodes.hasNext()) nodes = null;
+          return next.subs;
+        }
+        if(!serveCache) throw new NoSuchElementException();
+        serveCache = false;
+        return cache;
       }
 
       @Override
@@ -246,23 +327,16 @@ public final class Sequence<T> implements Iterable<T>, RandomAccess {
     };
   }
 
-  /**
-   * Writes the contents of this sequence to an array.
-   * @return array containing all contents
-   */
+  @Override
   public Object[] toArray() {
-    return writeTo(new Object[length()]);
+    return writeTo(new Object[size()]);
   }
 
-  /**
-   * Writes the contents of this sequence to an array.
-   * @param arr array to be written to
-   * @return array containing all contents
-   */
+  @Override
   @SuppressWarnings("unchecked")
   public T[] toArray(final T[] arr) {
-    return writeTo(arr.length >= length() ? arr :
-      (T[]) Array.newInstance(arr.getClass().getComponentType(), length()));
+    return writeTo(arr.length >= size() ? arr :
+      (T[]) Array.newInstance(arr.getClass().getComponentType(), size()));
   }
 
   /**
@@ -281,6 +355,28 @@ public final class Sequence<T> implements Iterable<T>, RandomAccess {
     return arr;
   }
 
+  @Override
+  public boolean equals(final Object obj) {
+    if(!(obj instanceof TrieSequence)) return false;
+    final TrieSequence<?> other = (TrieSequence<?>) obj;
+    if(size() != other.size()) return false;
+
+    final Iterator<?> mine = iterator(), theirs = other.iterator();
+    while(mine.hasNext()) {
+      final Object a = mine.next(), b = theirs.next();
+      if(a == null ? b != null : !a.equals(b)) return false;
+    }
+    return true;
+  }
+
+
+  @Override
+  public int hashCode() {
+    int hash = 1;
+    for(final T val : this)  hash = 31 * hash + (val == null ? 0 : val.hashCode());
+    return hash;
+  }
+
   /**
    * Node of the sequence's tree.
    * @author Leo Woerteler
@@ -292,13 +388,22 @@ public final class Sequence<T> implements Iterable<T>, RandomAccess {
     final int level;
     /** Child nodes. */
     final Object[] subs;
+
     /**
-     * Constructor.
+     * Constructor for leaf nodes.
+     * @param sub elements
+     */
+    Node(final Object[] sub) {
+      this(sub, 1, 0);
+    }
+
+    /**
+     * Private constructor for inner nodes.
      * @param sub children
      * @param s size
      * @param lvl level
      */
-    Node(final Object[] sub, final int s, final int lvl) {
+    private Node(final Object[] sub, final int s, final int lvl) {
       subs = sub;
       size = s;
       level = lvl;
@@ -332,7 +437,7 @@ public final class Sequence<T> implements Iterable<T>, RandomAccess {
     }
 
     /**
-     * Recursive {@link Sequence#toString()} helper.
+     * Recursive {@link TrieSequence#toString()} helper.
      * @param sb string builder for the result
      * @return string builder for convenience
      */

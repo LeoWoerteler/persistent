@@ -1,6 +1,9 @@
 package de.woerteler.persistent.test.map;
 
 import static org.junit.Assert.*;
+import static de.woerteler.persistent.test.TrieSequenceTests.equalsWithHash;
+
+import java.util.*;
 
 import org.junit.*;
 
@@ -31,6 +34,18 @@ public class ImmutableMapTest {
   private static ImmutableMap<Number, Number> mapFromPairs(final Number... prs) {
     ImmutableMap<Number, Number> map = ImmutableMap.empty();
     for(int i = 0; i < prs.length; i++) map = map.insert(prs[i], prs[++i]);
+    return map;
+  }
+
+  /**
+   * Constructs a {@link Map} from the given array, interpreting the elements as
+   * alternating sequence of keys an values.
+   * @param prs key/value pairs
+   * @return map
+   */
+  private static Map<Number, Number> utilMap(final Number... prs) {
+    Map<Number, Number> map = new HashMap<Number, Number>(prs.length / 2);
+    for(int i = 0; i < prs.length; i++) map.put(prs[i], prs[++i]);
     return map;
   }
 
@@ -353,5 +368,87 @@ public class ImmutableMapTest {
     assertEquals(branch.addAll(conflict), mapFromPairs(0, 0, 1, 0, 0L, 2, 1L, 2));
     assertEquals(branch.addAll(other), mapFromPairs(0, 0, 1, 0, 2, 3, 3, 3));
     assertEquals(branch.addAll(split), mapFromPairs(0, 0, 1, 0, next, 4, next + 1, 4));
+  }
+
+  /** Tests {@link ImmutableMap#addAll(ImmutableMap)} of nodes into an empty node. */
+  @SuppressWarnings("unchecked")
+  @Test public void addEmpty() {
+    final ImmutableMap<Number, Number> empty = mapFrom(), leaf = mapFromPairs(0, 1),
+        list = mapFromPairs(0, 2, 0L, 2), branch = mapFromPairs(0, 3, 1, 3);
+    for(final ImmutableMap<Number, Number> map
+        : Arrays.asList(empty, leaf, list, branch)) {
+      assertSame(map, empty.addAll(map));
+      assertSame(map, map.addAll(empty));
+      assertEquals("argument: " + map.toString(), empty == map, empty.equals(map));
+      assertEquals("reveiver: " + map.toString(), empty == map, map.equals(empty));
+    }
+  }
+
+  /** Tests {@link ImmutableMap#equals(Object)} between different node types. */
+  @SuppressWarnings("unchecked")
+  @Test public void crossEquals() {
+    final ImmutableMap<Number, Number> empty = mapFrom(), leaf = mapFromPairs(0, 1),
+        list = mapFromPairs(0, 2, 0L, 2), branch = mapFromPairs(0, 3, 1, 3);
+    for(final ImmutableMap<Number, Number> map
+        : Arrays.asList(empty, leaf, list, branch)) {
+      assertFalse(map.equals(null));
+      for(final ImmutableMap<Number, Number> map2
+          : Arrays.asList(empty, leaf, list, branch)) {
+        assertEquals(map == map2, map.equals(map2));
+      }
+    }
+  }
+
+  /** Tests {@link ImmutableMap#equals(Object)} between different node types. */
+  @Test public void leafEquals() {
+    final ImmutableMap<Number, Number> leaf = mapFrom(0), wNull = mapFromPairs(0, null);
+    assertTrue(equalsWithHash(leaf, mapFrom(0)));
+    assertTrue(equalsWithHash(wNull, mapFromPairs(0, null)));
+
+    assertFalse("collision", leaf.equals(mapFrom(0L)));
+    assertFalse("not contained", leaf.equals(mapFrom(1)));
+    assertFalse("different value", leaf.equals(mapFromPairs(0, 1)));
+    assertFalse("value null", leaf.equals(wNull));
+    assertFalse("own value null", wNull.equals(leaf));
+    assertFalse("not a leaf", mapFrom(0, 1, 1L).equals(mapFrom(0, 0L, 1)));
+  }
+
+  /** Tests {@link ImmutableMap#equals(Object)} between different node types. */
+  @Test public void listEquals() {
+    final ImmutableMap<Number, Number> list = mapFrom(0, 0L),
+        withNull = mapFromPairs(0, null, 0L, 0L);
+    assertTrue(equalsWithHash(list, mapFrom(0, 0L)));
+    assertTrue(equalsWithHash(list, mapFrom(0L, 0)));
+    assertTrue(equalsWithHash(withNull, mapFromPairs(0, null, 0L, 0L)));
+
+    assertFalse("collision", list.equals(mapFromPairs(0, 0, (short) 0, 0L)));
+    assertFalse("not contained", list.equals(mapFrom(1, 0L)));
+    assertFalse("different value", list.equals(mapFromPairs(0, 0, 0L, 1)));
+    assertFalse("value null", list.equals(withNull));
+    assertFalse("own value null", withNull.equals(list));
+    assertFalse("different lengths",
+        mapFrom(0, 0L, 1, 1L).equals(mapFrom(0, 0L, (short) 0, 1)));
+    assertFalse("different hash", list.equals(mapFrom(1, 1L)));
+  }
+
+  /** Tests {@link ImmutableMap#equals(Object)} between different node types. */
+  @Test public void branchEquals() {
+    final ImmutableMap<Number, Number> branch = mapFrom(0, 1);
+    assertTrue(equalsWithHash(branch, mapFrom(0, 1)));
+
+    assertFalse("different nodes", branch.equals(mapFrom(0, 0L)));
+    assertFalse("different usage", branch.equals(mapFrom(0, 2)));
+    assertFalse("different children", branch.equals(mapFrom(0, 1L)));
+  }
+
+  /** Tests the {@link ImmutableMap#from(Map)} method. */
+  @Test public void fromMap() {
+    assertSame(ImmutableMap.EMPTY, ImmutableMap.from(Collections.emptyMap()));
+    assertEquals("leaf", mapFrom(0), ImmutableMap.from(utilMap(0, 0)));
+    assertEquals("leaf null", mapFromPairs(0, null), ImmutableMap.from(utilMap(0, null)));
+    assertEquals("list", mapFrom(0, 0L), ImmutableMap.from(utilMap(0, 0, 0L, 0L)));
+    assertEquals("list null", mapFromPairs(0, 0, 0L, null),
+        ImmutableMap.from(utilMap(0, 0, 0L, null)));
+    assertEquals("branch", mapFrom(0, 1), ImmutableMap.from(utilMap(0, 0, 1, 1)));
   }
 }
