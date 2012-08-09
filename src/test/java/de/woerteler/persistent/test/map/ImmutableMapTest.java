@@ -1,7 +1,7 @@
 package de.woerteler.persistent.test.map;
 
 import static org.junit.Assert.*;
-import static de.woerteler.persistent.test.TrieSequenceTests.equalsWithHash;
+import static de.woerteler.persistent.test.TrieSequenceTest.equalsWithHash;
 
 import java.util.*;
 

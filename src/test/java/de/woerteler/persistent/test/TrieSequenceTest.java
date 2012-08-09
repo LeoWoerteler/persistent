@@ -11,7 +11,7 @@ import static org.junit.Assert.*;
  *
  * @author Leo Woerteler
  */
-public class TrieSequenceTests {
+public class TrieSequenceTest {
 
   /**
    * Tests {@link Object#equals(Object)} and {@link Object#hashCode()}.
