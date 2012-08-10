@@ -38,7 +38,9 @@ public class TrieSequenceTest {
         return new Iterator<Integer>() {
           @Override public boolean hasNext() { return current < end; }
           @Override public Integer next() { return current++; }
-          @Override public void remove() { }
+
+          @Override
+          public void remove() { /* nothing to do */}
         };
       }
     };
@@ -48,7 +50,9 @@ public class TrieSequenceTest {
   private static final TrieSequence<Integer> TEST;
   static {
     TrieSequence<Integer> test = TrieSequence.empty();
-    for(int i = 0; i < 12345; i++) test = test.add(i);
+    for(int i = 0; i < 12345; i++) {
+      test = test.add(i);
+    }
     TEST = test;
   }
 
@@ -60,7 +64,9 @@ public class TrieSequenceTest {
       assertEquals("Sequence size", i, seq.size());
       seq = seq.add(i);
     }
-    for(int i = 0; i < 1234; i++) assertEquals((Integer) i, seq.get(i));
+    for(int i = 0; i < 1234; i++) {
+      assertEquals((Integer) i, seq.get(i));
+    }
   }
 
   /** Tests if the iterator yields the items in the right order. */
@@ -78,7 +84,9 @@ public class TrieSequenceTest {
     TrieSequence<Integer> seq = TrieSequence.empty();
     for(int i = 0; i < 1000; i++) {
       int j = 0;
-      for(@SuppressWarnings("unused") final Integer it : seq) j++;
+      for(@SuppressWarnings("unused") final Integer it : seq) {
+        j++;
+      }
       assertEquals(i, j);
       seq = seq.add(i);
     }
@@ -122,13 +130,17 @@ public class TrieSequenceTest {
   /** Tests if sequences can be created from arrays. */
   @Test public void fromArray() {
     assertSame(TrieSequence.empty(), TrieSequence.from(new Integer[0]));
-    for(int len : new int[] { 1, TrieSequence.SIZE + TrieSequence.SIZE / 2,
+    for(final int len : new int[] { 1, TrieSequence.SIZE + TrieSequence.SIZE / 2,
         2 * TrieSequence.SIZE }) {
       final Integer[] arr = new Integer[len];
-      for(int j = 0; j < len; j++) arr[j] = j;
+      for(int j = 0; j < len; j++) {
+        arr[j] = j;
+      }
       final TrieSequence<Integer> seq = TrieSequence.from(arr);
       assertEquals("size", len, seq.size());
-      for(int j = 0; j < len; j++) assertEquals("element", (Integer) j, seq.get(j));
+      for(int j = 0; j < len; j++) {
+        assertEquals("element", (Integer) j, seq.get(j));
+      }
     }
   }
 
@@ -137,13 +149,17 @@ public class TrieSequenceTest {
     assertSame(TrieSequence.empty(), TrieSequence.from(Collections.emptyList()));
     final TrieSequence<Integer> single = TrieSequence.singleton(42);
     assertSame(single, TrieSequence.from(single));
-    for(int len : new int[] { 1, TrieSequence.SIZE + TrieSequence.SIZE / 2,
+    for(final int len : new int[] { 1, TrieSequence.SIZE + TrieSequence.SIZE / 2,
         2 * TrieSequence.SIZE }) {
       final List<Integer> list = new ArrayList<Integer>(len);
-      for(int j = 0; j < len; j++) list.add(j);
+      for(int j = 0; j < len; j++) {
+        list.add(j);
+      }
       final TrieSequence<Integer> seq = TrieSequence.from(list);
       assertEquals("size", len, seq.size());
-      for(int j = 0; j < len; j++) assertEquals("element", (Integer) j, seq.get(j));
+      for(int j = 0; j < len; j++) {
+        assertEquals("element", (Integer) j, seq.get(j));
+      }
     }
   }
 

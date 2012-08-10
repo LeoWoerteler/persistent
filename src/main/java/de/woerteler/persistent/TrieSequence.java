@@ -1,7 +1,10 @@
 package de.woerteler.persistent;
 
 import java.lang.reflect.Array;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.RandomAccess;
 
 /**
  * An immutable sequence.
@@ -104,7 +107,9 @@ public final class TrieSequence<T> implements PersistentSequence<T>, RandomAcces
       pos += SIZE;
     }
     final Object[] cache = new Object[array.length - pos];
-    if(cache.length > 0) System.arraycopy(array, pos, cache, 0, cache.length);
+    if(cache.length > 0) {
+      System.arraycopy(array, pos, cache, 0, cache.length);
+    }
     return new TrieSequence<T>(root, cache);
   }
 
@@ -117,7 +122,9 @@ public final class TrieSequence<T> implements PersistentSequence<T>, RandomAcces
   public TrieSequence<T> add(final T it) {
     final int cl = cache.length;
     final Object[] newCache = new Object[cl + 1];
-    if(cl > 0) System.arraycopy(cache, 0, newCache, 0, cl);
+    if(cl > 0) {
+      System.arraycopy(cache, 0, newCache, 0, cl);
+    }
     newCache[cl] = it;
 
     // cache is flushed only when it's full
@@ -132,7 +139,9 @@ public final class TrieSequence<T> implements PersistentSequence<T>, RandomAcces
   public T get(final int pos) {
     if(root != null && pos < root.size << BITS) {
       Node nd = root;
-      while(nd.level > 0) nd = (Node) nd.subs[(pos >>> (nd.level * BITS)) & LAST];
+      while(nd.level > 0) {
+        nd = (Node) nd.subs[(pos >>> (nd.level * BITS)) & LAST];
+      }
       return (T) nd.subs[pos & LAST];
     }
     return (T) cache[pos & LAST];
@@ -151,7 +160,9 @@ public final class TrieSequence<T> implements PersistentSequence<T>, RandomAcces
 
     if(!(sequence instanceof TrieSequence)) {
       TrieSequence<T> seq = this;
-      for(final T elem : sequence) seq = seq.add(elem);
+      for(final T elem : sequence) {
+        seq = seq.add(elem);
+      }
       return seq;
     }
 
@@ -198,14 +209,18 @@ public final class TrieSequence<T> implements PersistentSequence<T>, RandomAcces
   private TrieSequence<T> fastAppend(final TrieSequence<? extends T> seq) {
     Node node = root;
     final Iterator<Node> iter = seq.nodeIterator();
-    while(iter.hasNext()) node = node.insert(iter.next());
+    while(iter.hasNext()) {
+      node = node.insert(iter.next());
+    }
     return new TrieSequence<T>(node, seq.cache);
   }
 
   @Override
   public String toString() {
     final StringBuilder sb = new StringBuilder("Sequence[");
-    if(root != null) root.toString(sb);
+    if(root != null) {
+      root.toString(sb);
+    }
     return sb.append("; ").append(Arrays.toString(cache)).append(']').toString();
   }
 
@@ -279,7 +294,9 @@ public final class TrieSequence<T> implements PersistentSequence<T>, RandomAcces
       public Object[] next() {
         if(nodes != null) {
           final Node next = nodes.next();
-          if(!nodes.hasNext()) nodes = null;
+          if(!nodes.hasNext()) {
+            nodes = null;
+          }
           return next.subs;
         }
         if(!serveCache) throw new NoSuchElementException();
@@ -333,7 +350,6 @@ public final class TrieSequence<T> implements PersistentSequence<T>, RandomAcces
   }
 
   @Override
-  @SuppressWarnings("unchecked")
   public T[] toArray(final T[] arr) {
     return writeTo(arr.length >= size() ? arr :
       (T[]) Array.newInstance(arr.getClass().getComponentType(), size()));
@@ -346,7 +362,7 @@ public final class TrieSequence<T> implements PersistentSequence<T>, RandomAcces
    * @return {@code arr} for convenience
    */
   private <O> O[] writeTo(final O[] arr) {
-    int pos = 0;
+    final int pos = 0;
     final Iterator<Object[]> chunks = chunkIterator();
     while(chunks.hasNext()) {
       final Object[] chunk = chunks.next();
@@ -373,7 +389,9 @@ public final class TrieSequence<T> implements PersistentSequence<T>, RandomAcces
   @Override
   public int hashCode() {
     int hash = 1;
-    for(final T val : this)  hash = 31 * hash + (val == null ? 0 : val.hashCode());
+    for(final T val : this) {
+      hash = 31 * hash + (val == null ? 0 : val.hashCode());
+    }
     return hash;
   }
 
@@ -442,12 +460,20 @@ public final class TrieSequence<T> implements PersistentSequence<T>, RandomAcces
      * @return string builder for convenience
      */
     public StringBuilder toString(final StringBuilder sb) {
-      if(level == 0) sb.append("Leaf[");
-      else sb.append("Node(").append(level).append(")[");
+      if(level == 0) {
+        sb.append("Leaf[");
+      } else {
+        sb.append("Node(").append(level).append(")[");
+      }
       for(int i = 0; i < subs.length; i++) {
-        if(i > 0) sb.append(", ");
-        if(level == 0) sb.append(subs[i]);
-        else ((Node) subs[i]).toString(sb);
+        if(i > 0) {
+          sb.append(", ");
+        }
+        if(level == 0) {
+          sb.append(subs[i]);
+        } else {
+          ((Node) subs[i]).toString(sb);
+        }
       }
       return sb.append(']');
     }

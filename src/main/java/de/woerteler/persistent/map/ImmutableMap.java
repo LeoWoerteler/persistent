@@ -1,6 +1,6 @@
 package de.woerteler.persistent.map;
 
-import java.util.*;
+import java.util.Map;
 import java.util.Map.Entry;
 
 /**
@@ -78,7 +78,6 @@ public final class ImmutableMap<K, V> {
    * @param key key to look for
    * @return bound value if found, the empty sequence {@code ()} otherwise
    */
-  @SuppressWarnings("unchecked")
   public V get(final K key) {
     return (V) root.get(key.hashCode(), key, 0);
   }
@@ -109,8 +108,9 @@ public final class ImmutableMap<K, V> {
    */
   public ImmutableMap<K, V> addAll(final Map<? extends K, ? extends V> other) {
     ImmutableMap<K, V> map = this;
-    for(final Entry<? extends K, ? extends V> e : other.entrySet())
+    for(final Entry<? extends K, ? extends V> e : other.entrySet()) {
       map = map.insert(e.getKey(), e.getValue());
+    }
     return map;
   }
 
