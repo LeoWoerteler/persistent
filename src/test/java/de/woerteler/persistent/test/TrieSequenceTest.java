@@ -1,10 +1,18 @@
 package de.woerteler.persistent.test;
 
-import java.util.*;
-
-import org.junit.*;
-import de.woerteler.persistent.TrieSequence;
 import static org.junit.Assert.*;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
+
+import org.junit.Test;
+
+import de.woerteler.persistent.ArraySequence;
+import de.woerteler.persistent.PersistentSequence;
+import de.woerteler.persistent.TrieSequence;
 
 /**
  * Tests for {@link TrieSequence}.
@@ -15,13 +23,28 @@ public class TrieSequenceTest {
 
   /**
    * Tests {@link Object#equals(Object)} and {@link Object#hashCode()}.
+   * 
    * @param a first object to compare
    * @param b second object to compare
    * @return <code>true</code> iff <code>a</code> is equal to <code>b</code>,
-   *   <code>b</code> is equal to <code>a</code> (commutativity) an the hash codes match
+   *         <code>b</code> is equal to <code>a</code> (commutativity) and the
+   *         hash codes match
    */
-  public static boolean equalsWithHash(final Object a, final Object b) {
+  public static final boolean equalsWithHash(final Object a, final Object b) {
     return a.equals(b) && b.equals(a) && a.hashCode() == b.hashCode();
+  }
+
+  /**
+   * Tests <code>not</code> {@link Object#equals(Object)}.
+   * {@link Object#hashCode()} must not necessarily differ.
+   * 
+   * @param a first object to compare
+   * @param b second object to compare
+   * @return <code>true</code> iff <code>a</code> is not equal to <code>b</code>
+   *         and <code>b</code> is not equal to <code>a</code> (commutativity)
+   */
+  public static final boolean notEqual(final Object a, final Object b) {
+    return !a.equals(b) && !b.equals(a);
   }
 
   /**
@@ -210,4 +233,46 @@ public class TrieSequenceTest {
     assertEquals(TrieSequence.from(range(0, size + 3)),
         TrieSequence.from(range(0, 3)).append(TrieSequence.from(range(3, size + 3))));
   }
+
+  /** Tests appends on arbitrary sequences. */
+  @Test
+  public void appendArbitrary() {
+    final PersistentSequence<Integer> s123 = TrieSequence.from(1, 2, 3),
+
+        s456 = TrieSequence.from(4, 5, 6),
+
+        a123 = ArraySequence.from(1, 2, 3), a456 = ArraySequence.from(4, 5, 6),
+
+        s123456 = TrieSequence.from(1, 2, 3, 4, 5, 6),
+
+        a123456 = ArraySequence.from(1, 2, 3, 4, 5, 6),
+
+        css = s123.append(s456), csa = s123.append(a456),
+
+        cas = a123.append(s456), caa = a123.append(a456);
+    assertTrue(equalsWithHash(a123, s123));
+    assertTrue(equalsWithHash(a456, s456));
+    assertTrue(equalsWithHash(s123456, a123456));
+    assertTrue(notEqual(a123, a456));
+    assertTrue(notEqual(s123, a456));
+    assertTrue(notEqual(a123, s456));
+    assertTrue(notEqual(s123, s456));
+    assertTrue(notEqual(s123, s123456));
+    assertTrue(notEqual(a123, s123456));
+    assertTrue(notEqual(s123, a123456));
+    assertTrue(notEqual(a123, a123456));
+    assertTrue(notEqual(s456, s123456));
+    assertTrue(notEqual(s456, a123456));
+    assertTrue(notEqual(a456, s123456));
+    assertTrue(notEqual(a456, a123456));
+    assertTrue(equalsWithHash(css, a123456));
+    assertTrue(equalsWithHash(csa, a123456));
+    assertTrue(equalsWithHash(cas, a123456));
+    assertTrue(equalsWithHash(caa, a123456));
+    assertTrue(equalsWithHash(css, s123456));
+    assertTrue(equalsWithHash(csa, s123456));
+    assertTrue(equalsWithHash(cas, s123456));
+    assertTrue(equalsWithHash(caa, s123456));
+  }
+
 }

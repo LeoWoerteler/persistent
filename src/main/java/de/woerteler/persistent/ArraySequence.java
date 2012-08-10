@@ -4,6 +4,7 @@ import java.lang.ref.SoftReference;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 /**
  * A persistent sequence that is fast upon first creation. The addition of
@@ -13,7 +14,7 @@ import java.util.Iterator;
  * @author Joschi <josua.krause@googlemail.com>
  * @param <E> The type of this sequence.
  */
-public final class ArraySequence<E> implements PersistentSequence<E> {
+public final class ArraySequence<E> extends AbstractSequence<E> {
 
   /**
    * Creates a persistent sequence out of an array.
@@ -22,7 +23,7 @@ public final class ArraySequence<E> implements PersistentSequence<E> {
    * @param array The array.
    * @return The sequence.
    */
-  public static <E> PersistentSequence<E> from(final E[] array) {
+  public static <E> PersistentSequence<E> from(final E... array) {
     if(array.length == 0) return TrieSequence.empty();
     return new ArraySequence<E>(array.clone());
   }
@@ -66,6 +67,7 @@ public final class ArraySequence<E> implements PersistentSequence<E> {
 
       @Override
       public E next() {
+        if(pos >= array.length) throw new NoSuchElementException();
         return array[pos++];
       }
 
@@ -101,9 +103,12 @@ public final class ArraySequence<E> implements PersistentSequence<E> {
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public PersistentSequence<E> append(final PersistentSequence<? extends E> seq) {
+    if(seq.size() == 0) return this;
+    if(size() == 0) return (PersistentSequence<E>) seq;
     if(!(seq instanceof ArraySequence)) return convert().append(seq);
-    @SuppressWarnings("unchecked")
+
     final ArraySequence<E> other = (ArraySequence<E>) seq;
     final int newLength = array.length + other.array.length;
     final E[] newArray = Arrays.copyOf(array, newLength);
@@ -136,6 +141,12 @@ public final class ArraySequence<E> implements PersistentSequence<E> {
     }
     System.arraycopy(array, 0, a, 0, array.length);
     return a;
+  }
+
+  @Override
+  public String toString() {
+    final StringBuilder sb = new StringBuilder(getClass().getSimpleName());
+    return sb.append(Arrays.toString(array)).toString();
   }
 
 }

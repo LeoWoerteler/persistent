@@ -4,7 +4,6 @@ import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import java.util.RandomAccess;
 
 /**
  * An immutable sequence.
@@ -12,7 +11,7 @@ import java.util.RandomAccess;
  * @author Leo Woerteler
  * @param <T> type of the values in this collection
  */
-public final class TrieSequence<T> implements PersistentSequence<T>, RandomAccess {
+public final class TrieSequence<T> extends AbstractSequence<T> {
   /** Root node. */
   private final Node root;
 
@@ -158,13 +157,7 @@ public final class TrieSequence<T> implements PersistentSequence<T>, RandomAcces
     if(sequence.size() == 0) return this;
     if(this == EMPTY) return (PersistentSequence<T>) sequence;
 
-    if(!(sequence instanceof TrieSequence)) {
-      TrieSequence<T> seq = this;
-      for(final T elem : sequence) {
-        seq = seq.add(elem);
-      }
-      return seq;
-    }
+    if(!(sequence instanceof TrieSequence)) return super.append(sequence);
 
     final TrieSequence<? extends T> seq = (TrieSequence<? extends T>) sequence;
     if(cache.length == 0) return fastAppend(seq);
@@ -217,7 +210,8 @@ public final class TrieSequence<T> implements PersistentSequence<T>, RandomAcces
 
   @Override
   public String toString() {
-    final StringBuilder sb = new StringBuilder("Sequence[");
+    final StringBuilder sb = new StringBuilder(getClass().getSimpleName());
+    sb.append('[');
     if(root != null) {
       root.toString(sb);
     }
@@ -271,6 +265,7 @@ public final class TrieSequence<T> implements PersistentSequence<T>, RandomAcces
       public void remove() {
         throw new UnsupportedOperationException();
       }
+
     };
   }
 
@@ -308,6 +303,7 @@ public final class TrieSequence<T> implements PersistentSequence<T>, RandomAcces
       public void remove() {
         throw new UnsupportedOperationException();
       }
+
     };
   }
 
@@ -341,6 +337,7 @@ public final class TrieSequence<T> implements PersistentSequence<T>, RandomAcces
       public void remove() {
         throw new UnsupportedOperationException();
       }
+
     };
   }
 
@@ -369,30 +366,6 @@ public final class TrieSequence<T> implements PersistentSequence<T>, RandomAcces
       System.arraycopy(chunk, 0, arr, pos, chunk.length);
     }
     return arr;
-  }
-
-  @Override
-  public boolean equals(final Object obj) {
-    if(!(obj instanceof TrieSequence)) return false;
-    final TrieSequence<?> other = (TrieSequence<?>) obj;
-    if(size() != other.size()) return false;
-
-    final Iterator<?> mine = iterator(), theirs = other.iterator();
-    while(mine.hasNext()) {
-      final Object a = mine.next(), b = theirs.next();
-      if(a == null ? b != null : !a.equals(b)) return false;
-    }
-    return true;
-  }
-
-
-  @Override
-  public int hashCode() {
-    int hash = 1;
-    for(final T val : this) {
-      hash = 31 * hash + (val == null ? 0 : val.hashCode());
-    }
-    return hash;
   }
 
   /**
@@ -477,5 +450,7 @@ public final class TrieSequence<T> implements PersistentSequence<T>, RandomAcces
       }
       return sb.append(']');
     }
-  }
+
+  } // Node
+
 }
