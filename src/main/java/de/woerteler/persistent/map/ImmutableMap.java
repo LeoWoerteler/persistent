@@ -73,19 +73,19 @@ public final class ImmutableMap<K, V> extends AbstractPersistentMap<K, V> {
 
   @Override
   public ImmutableMap<K, V> remove(final K key) {
-    final TrieNode del = root.delete(key.hashCode(), key, 0);
+    final TrieNode del = root.delete(key == null ? 0 : key.hashCode(), key, 0);
     return del == root ? this :
       del == null ? ImmutableMap.<K, V>empty() : new ImmutableMap<K, V>(del);
   }
 
   @Override
   public V get(final K key) {
-    return (V) root.get(key.hashCode(), key, 0);
+    return (V) root.get(key == null ? 0 : key.hashCode(), key, 0);
   }
 
   @Override
   public boolean containsKey(final K key) {
-    return root.contains(key.hashCode(), key, 0);
+    return root.contains(key == null ? 0 : key.hashCode(), key, 0);
   }
 
   @Override
@@ -108,7 +108,8 @@ public final class ImmutableMap<K, V> extends AbstractPersistentMap<K, V> {
 
   @Override
   public ImmutableMap<K, V> put(final K key, final V value) {
-    return new ImmutableMap<K, V>(root.insert(key.hashCode(), key, value, 0));
+    return new ImmutableMap<K, V>(root.insert(key == null ? 0 : key.hashCode(), key,
+        value, 0));
   }
 
   @Override
@@ -338,8 +339,10 @@ public final class ImmutableMap<K, V> extends AbstractPersistentMap<K, V> {
       if(obj == this) return true;
       if(!(obj instanceof PersistentEntry)) return false;
       final PersistentEntry<?, ?> e = (PersistentEntry<?, ?>) obj;
-      return ((key == null && e.getKey() == null) || key.equals(e.getKey())) &&
-          ((value == null && e.getValue() == null) || value.equals(e.getValue()));
+      return ((key == null && e.getKey() == null)
+          || (key != null && key.equals(e.getKey())))
+          && ((value == null && e.getValue() == null)
+          || (value != null && value.equals(e.getValue())));
     }
 
     @Override

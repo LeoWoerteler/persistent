@@ -45,10 +45,9 @@ final class List extends TrieNode {
 
   @Override
   TrieNode delete(final int h, final Object k, final int l) {
-
     if(h == hash) {
       for(int i = size; i-- > 0;) {
-        if(k.equals(keys[i])) {
+        if((k == null && keys[i] == null) || (k != null && k.equals(keys[i]))) {
           // found entry
           if(size == 2) {
             // single leaf remains
@@ -68,7 +67,7 @@ final class List extends TrieNode {
     // same hash, replace or merge
     if(h == hash) {
       for(int i = keys.length; i-- > 0;) {
-        if(k.equals(keys[i])) {
+        if((k == null && keys[i] == null) || (k != null && k.equals(keys[i]))) {
           // replace value
           final Object[] vs = values.clone();
           vs[i] = v;
@@ -98,7 +97,7 @@ final class List extends TrieNode {
   Object get(final int h, final Object k, final int l) {
     if(h == hash) {
       for(int i = keys.length; --i >= 0;)
-        if(k.equals(keys[i])) return values[i];
+        if((keys[i] == null && k == null) || (k != null && k.equals(keys[i]))) return values[i];
     }
     return null;
   }
@@ -122,7 +121,7 @@ final class List extends TrieNode {
   boolean contains(final int h, final Object k, final int u) {
     if(h == hash) {
       for(int i = keys.length; --i >= 0;)
-        if(k.equals(keys[i])) return true;
+        if((k == null && keys[i] == null) || (k != null && k.equals(keys[i]))) return true;
     }
     return false;
   }
@@ -244,7 +243,8 @@ final class List extends TrieNode {
       boolean found = false;
       for (int j = find.nextSetBit(0); !found && j >= 0; j = find.nextSetBit(j + 1)) {
         final Object okey = other.keys[j], ovalue = other.values[j];
-        if(key.equals(okey) && (value == null ? ovalue == null : value.equals(ovalue))) {
+        if(((key == null && okey == null) || (key != null && key.equals(okey)))
+            && (value == null ? ovalue == null : value.equals(ovalue))) {
           find.clear(j);
           found = true;
         }

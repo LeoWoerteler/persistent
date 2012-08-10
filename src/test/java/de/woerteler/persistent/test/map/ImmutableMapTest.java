@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 import org.junit.Test;
 
@@ -514,19 +515,29 @@ public class ImmutableMapTest {
     final Iterator<Long> itl = keys.iterator();
     final Iterator<Integer> iti = values.iterator();
     final Iterator<PersistentEntry<Long, Integer>> ite = entries.iterator();
+    final Object[] ea = entries.toArray();
+    @SuppressWarnings("unchecked")
+    final PersistentEntry<Long, Integer>[] es = entries.toArray(
+        (PersistentEntry<Long, Integer>[]) new PersistentEntry<?, ?>[entries.size()]);
+    @SuppressWarnings("unchecked")
+    final PersistentEntry<Long, Integer>[] es2 = entries.toArray(
+        (PersistentEntry<Long, Integer>[]) new PersistentEntry<?, ?>[0]);
     assertEquals(keys.size(), values.size());
     assertEquals(values.size(), entries.size());
     PersistentEntry<Long, Integer> prev = null;
     for(int pos = 0; pos < keys.size(); ++pos) {
-      if(!itl.hasNext()) throw new IllegalStateException();
+      assertTrue(itl.hasNext());
       final long li = itl.next();
-      if(!iti.hasNext()) throw new IllegalStateException();
+      assertTrue(iti.hasNext());
       final int ii = iti.next();
-      if(!ite.hasNext()) throw new IllegalStateException();
+      assertTrue(ite.hasNext());
       final PersistentEntry<Long, Integer> ei = ite.next();
       final long ld = keys.get(pos);
       final int id = values.get(pos);
       final PersistentEntry<Long, Integer> ed = entries.get(pos);
+      assertEquals(ed, es[pos]);
+      assertEquals(ed, es2[pos]);
+      assertEquals(ed, ea[pos]);
       assertEquals(li, ld);
       assertEquals((long) ei.getKey(), li);
       assertEquals((long) ed.getKey(), (long) ei.getKey());
@@ -544,9 +555,241 @@ public class ImmutableMapTest {
     assertFalse(itl.hasNext());
     assertFalse(iti.hasNext());
     assertFalse(ite.hasNext());
+    try {
+      itl.next();
+      fail("should throw a no such element exception");
+    } catch(final NoSuchElementException e) {
+      // ok
+    }
+    try {
+      itl.remove();
+      fail("should throw a unsupported operation exception");
+    } catch(final UnsupportedOperationException e) {
+      // ok
+    }
+    try {
+      keys.get(-1);
+      fail("should throw a index out of bounds exception");
+    } catch(final IndexOutOfBoundsException e) {
+      // ok
+    }
+    try {
+      keys.get(keys.size());
+      fail("should throw a index out of bounds exception");
+    } catch(final IndexOutOfBoundsException e) {
+      // ok
+    }
     // sanity -- toString() must not throw an exception
     map.toString();
     keys.toString();
+    keys.add(500L).toString();
+  }
+
+  /**
+   * Does a sequence sanity check under the assumption that no two elements are
+   * the same.
+   * 
+   * @param <T> The type of sequence.
+   * @param seq The sequence.
+   */
+  private static <T> void fullSequenceSanity(final PersistentSequence<T> seq) {
+    for(int i = 0; i < seq.size(); ++i) {
+      // commutative
+      for(int j = 0; j < seq.size(); ++j) {
+        if(i == j) {
+          assertTrue(seq.get(i).equals(seq.get(j)));
+        } else {
+          assertFalse(seq.get(i).equals(seq.get(j)));
+        }
+      }
+    }
+  }
+
+  /**
+   * Ensures that <code>null</code> values can be inserted and deleted from a
+   * map.
+   */
+  @Test
+  public void nullEntries() {
+    PersistentMap<Integer, Integer> map = ImmutableMap.empty();
+    map = map.put(null, 5);
+    map = map.put(3, null);
+    map = map.put(10, 20);
+    assertTrue(map.containsKey(null));
+    assertTrue(map.containsKey(3));
+    assertFalse(map.containsKey(5));
+    assertEquals((int) map.get(null), 5);
+    assertEquals(map.remove(0), map);
+    assertNull(map.get(3));
+    final PersistentSequence<Integer> keys = map.keySequence();
+    assertTrue(keys.contains(null));
+    assertTrue(keys.contains(3));
+    assertFalse(keys.contains(5));
+    final PersistentSequence<Integer> values = map.valueSequence();
+    assertTrue(values.contains(null));
+    assertTrue(values.contains(5));
+    assertFalse(values.contains(3));
+    fullSequenceSanity(map.entrySequence());
+    map = map.put(null, null);
+    assertNull(map.get(null));
+    assertTrue(map.containsKey(null));
+    fullSequenceSanity(map.entrySequence());
+    map = map.remove(null);
+    assertFalse(map.containsKey(null));
+    assertFalse(map.keySequence().contains(null));
+    fullSequenceSanity(map.entrySequence());
+  }
+
+  /**
+   * Ensures that <code>null</code> values can be inserted and deleted from a
+   * map with collisions.
+   */
+  @Test
+  public void nullCollision() {
+    PersistentMap<Integer, Integer> map = ImmutableMap.empty();
+    map = map.put(0, 4);
+    map = map.put(null, 5);
+    map = map.put(3, null);
+    assertTrue(map.containsKey(null));
+    assertTrue(map.containsKey(3));
+    assertTrue(map.containsKey(0));
+    assertFalse(map.containsKey(5));
+    assertEquals((int) map.get(null), 5);
+    assertEquals((int) map.get(0), 4);
+    assertNull(map.get(3));
+    fullSequenceSanity(map.entrySequence());
+    final PersistentSequence<Integer> keys = map.keySequence();
+    assertTrue(keys.contains(null));
+    assertTrue(keys.contains(0));
+    assertTrue(keys.contains(3));
+    assertFalse(keys.contains(5));
+    final PersistentSequence<Integer> values = map.valueSequence();
+    assertTrue(values.contains(null));
+    assertTrue(values.contains(4));
+    assertTrue(values.contains(5));
+    assertFalse(values.contains(3));
+    map = map.put(null, null);
+    map = map.put(null, 20);
+    map = map.put(null, null);
+    assertNull(map.get(null));
+    assertEquals((int) map.get(0), 4);
+    assertTrue(map.containsKey(0));
+    assertTrue(map.containsKey(null));
+    fullSequenceSanity(map.entrySequence());
+    map = map.remove(null);
+    assertFalse(map.containsKey(null));
+    assertTrue(map.containsKey(0));
+    assertEquals((int) map.get(0), 4);
+    assertFalse(map.keySequence().contains(null));
+    map = map.remove(0);
+    map = map.put(null, 5);
+    map = map.put(0, 4);
+    assertTrue(map.containsKey(null));
+    assertTrue(map.containsKey(0));
+    fullSequenceSanity(map.entrySequence());
+    map = map.remove(0);
+    assertTrue(map.containsKey(null));
+    assertFalse(map.containsKey(0));
+    assertEquals((int) map.get(null), 5);
+    assertNull(map.get(0));
+    fullSequenceSanity(map.entrySequence());
+    map = map.remove(null);
+    assertFalse(map.containsKey(null));
+    assertFalse(map.containsKey(0));
+    assertNull(map.get(0));
+    assertNull(map.get(null));
+    fullSequenceSanity(map.entrySequence());
+  }
+
+  /**
+   * Tests whether maps behave correctly when not containing <code>null</code>
+   * values but asked if they do.
+   */
+  @Test
+  public void nonNull() {
+    final ImmutableMap<Integer, Integer> map0 = ImmutableMap.singleton(1, 5);
+    assertNull(map0.get(null));
+    assertFalse(map0.containsKey(null));
+    assertEquals(map0.remove(null), map0);
+    fullSequenceSanity(map0.entrySequence());
+    ImmutableMap<Object, Integer> map1 = ImmutableMap.empty();
+    map1 = map1.put(new Object() {
+      @Override
+      public int hashCode() {
+        return 0;
+      }
+    }, 3);
+    assertNull(map1.get(null));
+    assertFalse(map1.containsKey(null));
+    assertEquals(map1.remove(null), map1);
+    map1 = map1.put(new Object() {
+      @Override
+      public int hashCode() {
+        return 0;
+      }
+    }, 5);
+    assertNull(map1.get(null));
+    assertFalse(map1.containsKey(null));
+    assertEquals(map1.remove(null), map1);
+    assertEquals(map1.remove(new Object() {
+      @Override
+      public int hashCode() {
+        return 0;
+      }
+    }), map1);
+    map1 = map1.put(null, 20);
+    assertEquals(map1.remove(new Object() {
+      @Override
+      public int hashCode() {
+        return 0;
+      }
+    }), map1);
+    fullSequenceSanity(map1.entrySequence());
+  }
+
+  /** Finds equal entries from different maps. */
+  @Test
+  public void equalEntries() {
+    ImmutableMap<Integer, Integer> map0 = ImmutableMap.singleton(1, 5);
+    map0 = map0.put(null, 4);
+    map0 = map0.put(3, null);
+    map0 = map0.put(6, null);
+    map0 = map0.put(2, 6);
+    ImmutableMap<Integer, Integer> map1 = ImmutableMap.singleton(2, 6);
+    map1 = map1.put(6, null);
+    map1 = map1.put(3, null);
+    map1 = map1.put(null, 4);
+    map1 = map1.put(1, 5);
+    for(final PersistentEntry<Integer, Integer> e : map0.entrySequence()) {
+      int matches = 0;
+      for(final PersistentEntry<Integer, Integer> a : map1.entrySequence()) {
+        if(e.equals(a)) {
+          assertEquals(e.hashCode(), a.hashCode());
+          ++matches;
+        }
+      }
+      assertEquals(1, matches);
+    }
+  }
+
+  /** No equal entries here. */
+  @Test
+  public void noEqualEntries() {
+    ImmutableMap<Integer, Integer> map0 = ImmutableMap.singleton(1, 5);
+    map0 = map0.put(null, 4);
+    map0 = map0.put(3, null);
+    map0 = map0.put(6, null);
+    map0 = map0.put(2, 6);
+    ImmutableMap<Integer, Integer> map1 = ImmutableMap.singleton(1, 6);
+    map1 = map1.put(null, 3);
+    map1 = map1.put(3, 5);
+    map1 = map1.put(6, 4);
+    map1 = map1.put(2, null);
+    for(final PersistentEntry<Integer, Integer> e : map0.entrySequence()) {
+      for(final PersistentEntry<Integer, Integer> a : map1.entrySequence()) {
+        assertFalse(e.equals(a));
+      }
+    }
   }
 
 }

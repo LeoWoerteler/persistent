@@ -30,7 +30,7 @@ final class Leaf extends TrieNode {
   @Override
   TrieNode insert(final int h, final Object k, final Object v, final int l) {
     // same hash, replace or merge
-    if(h == hash) return k.equals(key) ?
+    if(h == hash) return ((key == null && k == null) || (k != null && k.equals(key))) ?
         new Leaf(h, k, v) : new List(hash, key, value, k, v);
 
         // different hash, branch
@@ -50,12 +50,14 @@ final class Leaf extends TrieNode {
 
   @Override
   TrieNode delete(final int h, final Object k, final int l) {
-    return h == hash && key.equals(k) ? null : this;
+    return h == hash && ((key == null && k == null) || (key != null && key.equals(k))) ? null
+        : this;
   }
 
   @Override
   Object get(final int h, final Object k, final int l) {
-    return h == hash && key.equals(k) ? value : null;
+    return h == hash && ((key == null && k == null) || (key != null && key.equals(k))) ? value
+        : null;
   }
 
   @Override
@@ -77,7 +79,7 @@ final class Leaf extends TrieNode {
 
   @Override
   boolean contains(final int h, final Object k, final int l) {
-    return h == hash && key.equals(k);
+    return h == hash && ((key == null && k == null) || (key != null && key.equals(k)));
   }
 
   @Override
@@ -171,8 +173,9 @@ final class Leaf extends TrieNode {
   public boolean equals(final Object obj) {
     if(obj instanceof Leaf) {
       final Leaf other = (Leaf) obj;
-      return hash == other.hash && key.equals(other.key)
-          && (value == null ? other.value == null : value.equals(other.value));
+      return hash == other.hash
+          && (((key == null && other.key == null) || (key != null && key.equals(other.key)))
+          && (value == null ? other.value == null : value.equals(other.value)));
     }
     return false;
   }
