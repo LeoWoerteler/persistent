@@ -10,7 +10,7 @@ import java.util.Map.Entry;
  * @param <K> key type
  * @param <V> value type
  */
-public final class ImmutableMap<K, V> {
+public final class ImmutableMap<K, V> implements PersistentMap<K, V> {
   /** The empty map. */
   public static final ImmutableMap<?, ?> EMPTY =
       new ImmutableMap<Object, Object>(TrieNode.EMPTY);
@@ -62,50 +62,33 @@ public final class ImmutableMap<K, V> {
     return ImmutableMap.<K, V>empty().addAll(map);
   }
 
-  /**
-   * Deletes a key from this map.
-   * @param key key to delete
-   * @return updated map if changed, {@code this} otherwise
-   */
+  @Override
   public ImmutableMap<K, V> delete(final K key) {
     final TrieNode del = root.delete(key.hashCode(), key, 0);
     return del == root ? this :
       del == null ? ImmutableMap.<K, V>empty() : new ImmutableMap<K, V>(del);
   }
 
-  /**
-   * Gets the value from this map.
-   * @param key key to look for
-   * @return bound value if found, the empty sequence {@code ()} otherwise
-   */
+  @Override
   public V get(final K key) {
     return (V) root.get(key.hashCode(), key, 0);
   }
 
-  /**
-   * Checks if the given key exists in the map.
-   * @param key key to look for
-   * @return {@code true()}, if the key exists, {@code false()} otherwise
-   */
+  @Override
   public boolean contains(final K key) {
     return root.contains(key.hashCode(), key, 0);
   }
 
-  /**
-   * Adds all bindings from the given map into {@code this}.
-   * @param other map to add
-   * @return updated map if changed, {@code this} otherwise
-   */
-  public ImmutableMap<K, V> addAll(final ImmutableMap<K, V> other) {
-    final TrieNode upd = root.addAll(other.root, 0);
-    return upd == root ? this : upd == other.root ? other : new ImmutableMap<K, V>(upd);
+  @Override
+  public ImmutableMap<K, V> addAll(final PersistentMap<K, V> other) {
+    if(!(other instanceof ImmutableMap)) throw new UnsupportedOperationException(
+        "not yet implemented");
+    final ImmutableMap<K, V> o = (ImmutableMap<K, V>) other;
+    final TrieNode upd = root.addAll(o.root, 0);
+    return upd == root ? this : upd == o.root ? o : new ImmutableMap<K, V>(upd);
   }
 
-  /**
-   * Adds all bindings from the given map into {@code this}.
-   * @param other map to add
-   * @return updated map if changed, {@code this} otherwise
-   */
+  @Override
   public ImmutableMap<K, V> addAll(final Map<? extends K, ? extends V> other) {
     ImmutableMap<K, V> map = this;
     for(final Entry<? extends K, ? extends V> e : other.entrySet()) {
@@ -114,20 +97,12 @@ public final class ImmutableMap<K, V> {
     return map;
   }
 
-  /**
-   * Inserts the given value into this map.
-   * @param key key to insert
-   * @param value value to insert
-   * @return updated map if changed, {@code this} otherwise
-   */
+  @Override
   public ImmutableMap<K, V> insert(final K key, final V value) {
     return new ImmutableMap<K, V>(root.insert(key.hashCode(), key, value, 0));
   }
 
-  /**
-   * Number of values contained in this map.
-   * @return size
-   */
+  @Override
   public int size() {
     return root.size;
   }
@@ -148,4 +123,5 @@ public final class ImmutableMap<K, V> {
   public String toString() {
     return root.toString();
   }
+
 }

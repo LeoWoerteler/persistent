@@ -5,7 +5,7 @@ package de.woerteler.persistent.map;
  *
  * @author Leo Woerteler
  */
-public abstract class TrieNode {
+abstract class TrieNode {
   /** Number of children on each level. */
   static final int KIDS = 1 << ImmutableMap.BITS;
   /** Mask for the bits used on the current level. */
