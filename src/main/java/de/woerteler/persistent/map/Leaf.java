@@ -30,7 +30,7 @@ final class Leaf extends TrieNode {
   @Override
   TrieNode insert(final int h, final Object k, final Object v, final int l) {
     // same hash, replace or merge
-    if(h == hash) return ((key == null && k == null) || (k != null && k.equals(key))) ?
+    if(h == hash) return equal(k, key) ?
         new Leaf(h, k, v) : new List(hash, key, value, k, v);
 
         // different hash, branch
@@ -50,14 +50,12 @@ final class Leaf extends TrieNode {
 
   @Override
   TrieNode delete(final int h, final Object k, final int l) {
-    return h == hash && ((key == null && k == null) || (key != null && key.equals(k))) ? null
-        : this;
+    return h == hash && equal(k, key) ? null : this;
   }
 
   @Override
   Object get(final int h, final Object k, final int l) {
-    return h == hash && ((key == null && k == null) || (key != null && key.equals(k))) ? value
-        : null;
+    return h == hash && equal(k, key) ? value : null;
   }
 
   @Override
@@ -79,7 +77,7 @@ final class Leaf extends TrieNode {
 
   @Override
   boolean contains(final int h, final Object k, final int l) {
-    return h == hash && ((key == null && k == null) || (key != null && key.equals(k)));
+    return h == hash && equal(k, key);
   }
 
   @Override
@@ -95,7 +93,7 @@ final class Leaf extends TrieNode {
 
   @Override
   TrieNode add(final Leaf o, final int l) {
-    if(hash == o.hash) return key.equals(o.key) ?
+    if(hash == o.hash) return equal(key, o.key) ?
         this : new List(hash, key, value, o.key, o.value);
 
     final TrieNode[] ch = new TrieNode[KIDS];
@@ -117,11 +115,10 @@ final class Leaf extends TrieNode {
 
   @Override
   TrieNode add(final List o, final int l) {
-
     // same hash? insert binding
     if(hash == o.hash) {
       for(int i = 0; i < o.size; i++) {
-        if(key.equals(o.keys[i])) {
+        if(equal(key, o.keys[i])) {
           final Object[] ks = o.keys.clone();
           final Object[] vs = o.values.clone();
           ks[i] = key;
@@ -173,9 +170,7 @@ final class Leaf extends TrieNode {
   public boolean equals(final Object obj) {
     if(obj instanceof Leaf) {
       final Leaf other = (Leaf) obj;
-      return hash == other.hash
-          && (((key == null && other.key == null) || (key != null && key.equals(other.key)))
-          && (value == null ? other.value == null : value.equals(other.value)));
+      return hash == other.hash && equal(key, other.key) && equal(value, other.value);
     }
     return false;
   }

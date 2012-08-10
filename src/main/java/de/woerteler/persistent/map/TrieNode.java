@@ -268,4 +268,16 @@ abstract class TrieNode {
   @Override
   public abstract int hashCode();
 
+  /**
+   * Compares two objects.
+   * 
+   * @param a Object a or <code>null</code>.
+   * @param b Object b or <code>null</code>.
+   * @return <code>true</code> if both objects equal each other or both are
+   *         <code>null</code>.
+   */
+  public static final boolean equal(final Object a, final Object b) {
+    return (a == null && b == null) || (a != null && a.equals(b));
+  }
+
 }
