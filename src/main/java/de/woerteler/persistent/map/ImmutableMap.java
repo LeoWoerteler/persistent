@@ -3,6 +3,10 @@ package de.woerteler.persistent.map;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import de.woerteler.persistent.FlatSequence;
+import de.woerteler.persistent.Persistent;
+import de.woerteler.persistent.PersistentSequence;
+
 /**
  * An immutable map.
  *
@@ -108,8 +112,30 @@ public final class ImmutableMap<K, V> implements PersistentMap<K, V> {
   }
 
   @Override
+  public PersistentSequence<K> keySequence() {
+    final TrieNode r = this.root;
+    final int size = r.size;
+    if(size == 0) return Persistent.empty();
+    return new FlatSequence<K>() {
+
+      @Override
+      public K get(final int pos) {
+        if(pos < 0 || pos >= size) throw new IndexOutOfBoundsException(
+            "index: " + pos + " size: " + size);
+        return (K) r.getPositionKey(pos);
+      }
+
+      @Override
+      public int size() {
+        return size;
+      }
+
+    };
+  }
+
+  @Override
   public boolean equals(final Object obj) {
-    if(!(obj instanceof ImmutableMap)) return false;
+    if(!(obj instanceof ImmutableMap)) return super.equals(obj);
     final ImmutableMap<?, ?> other = (ImmutableMap<?, ?>) obj;
     return root.size == other.root.size && root.equals(other.root);
   }

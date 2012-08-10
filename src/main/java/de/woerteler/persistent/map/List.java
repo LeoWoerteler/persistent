@@ -104,6 +104,11 @@ final class List extends TrieNode {
   }
 
   @Override
+  Object getPositionKey(final int pos) {
+    return keys[pos];
+  }
+
+  @Override
   boolean contains(final int h, final Object k, final int u) {
     if(h == hash) {
       for(int i = keys.length; --i >= 0;)

@@ -28,6 +28,23 @@ public interface PersistentSequence<E> extends Iterable<E>, RandomAccess {
   PersistentSequence<E> append(final PersistentSequence<? extends E> sequence);
 
   /**
+   * Returns the first index of the given element if it exists in the sequence.
+   * 
+   * @param elem The element.
+   * @return The first index of the element or <code>-1</code> if the element is
+   *         not contained.
+   */
+  int indexOf(E elem);
+
+  /**
+   * Whether the sequence contains the given element.
+   * 
+   * @param elem The element.
+   * @return Whether the sequence contains it.
+   */
+  boolean contains(E elem);
+
+  /**
    * Gets the element at the given position in the sequence.
    * @param pos position of the element
    * @return element at the given position

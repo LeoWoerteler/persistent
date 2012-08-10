@@ -2,6 +2,8 @@ package de.woerteler.persistent.map;
 
 import java.util.Map;
 
+import de.woerteler.persistent.PersistentSequence;
+
 /**
  * An interface for an immutable map. All operations that would update a mutable
  * map return a new sequence reflecting the changes instead.
@@ -30,7 +32,7 @@ public interface PersistentMap<K, V> {
   V get(K key);
 
   /**
-   * Number of values contained in this map.
+   * Number of key/value-pairs contained in this map.
    * 
    * @return size
    */
@@ -67,5 +69,12 @@ public interface PersistentMap<K, V> {
    * @return updated map if changed, {@code this} otherwise
    */
   PersistentMap<K, V> addAll(Map<? extends K, ? extends V> other);
+
+  /**
+   * Returns a sequence of all keys in an arbitrary order.
+   * 
+   * @return A sequence of all keys.
+   */
+  PersistentSequence<K> keySequence();
 
 }

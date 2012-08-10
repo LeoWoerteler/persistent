@@ -33,19 +33,19 @@ final class Leaf extends TrieNode {
     if(h == hash) return k.equals(key) ?
         new Leaf(h, k, v) : new List(hash, key, value, k, v);
 
-    // different hash, branch
-    final TrieNode[] ch = new TrieNode[KIDS];
-    final int a = key(h, l), b = key(hash, l);
-    final int used;
-    if(a != b) {
-      ch[a] = new Leaf(h, k, v);
-      ch[b] = this;
-      used = 1 << a | 1 << b;
-    } else {
-      ch[a] = insert(h, k, v, l + 1);
-      used = 1 << a;
-    }
-    return new Branch(ch, used, 2);
+        // different hash, branch
+        final TrieNode[] ch = new TrieNode[KIDS];
+        final int a = key(h, l), b = key(hash, l);
+        final int used;
+        if(a != b) {
+          ch[a] = new Leaf(h, k, v);
+          ch[b] = this;
+          used = 1 << a | 1 << b;
+        } else {
+          ch[a] = insert(h, k, v, l + 1);
+          used = 1 << a;
+        }
+        return new Branch(ch, used, 2);
   }
 
   @Override
@@ -56,6 +56,12 @@ final class Leaf extends TrieNode {
   @Override
   Object get(final int h, final Object k, final int l) {
     return h == hash && key.equals(k) ? value : null;
+  }
+
+  @Override
+  Object getPositionKey(final int pos) {
+    assert pos == 0;
+    return key;
   }
 
   @Override

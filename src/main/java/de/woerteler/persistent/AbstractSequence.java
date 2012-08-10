@@ -1,6 +1,7 @@
 package de.woerteler.persistent;
 
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 /**
  * The abstract base class for persistent sequences. It provides equality checks
@@ -19,6 +20,50 @@ public abstract class AbstractSequence<E> implements PersistentSequence<E> {
       seq = seq.add(elem);
     }
     return seq;
+  }
+
+  @Override
+  public Iterator<E> iterator() {
+    return new Iterator<E>() {
+
+      private int pos;
+
+      @Override
+      public boolean hasNext() {
+        return pos < size();
+      }
+
+      @Override
+      public E next() {
+        if(pos >= size()) throw new NoSuchElementException();
+        return get(pos++);
+      }
+
+      @Override
+      public void remove() {
+        throw new UnsupportedOperationException();
+      }
+
+    };
+  }
+
+  @Override
+  public int indexOf(final E elem) {
+    int pos = 0;
+    for(final E e : this) {
+      if(e == null) {
+        if(elem == null) return pos;
+      } else {
+        if(e.equals(elem)) return pos;
+      }
+      ++pos;
+    }
+    return -1;
+  }
+
+  @Override
+  public boolean contains(final E elem) {
+    return indexOf(elem) != -1;
   }
 
   @Override

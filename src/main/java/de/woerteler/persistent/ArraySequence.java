@@ -1,10 +1,7 @@
 package de.woerteler.persistent;
 
-import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
 
 /**
  * A persistent sequence that is fast upon first creation. The addition of
@@ -14,7 +11,7 @@ import java.util.NoSuchElementException;
  * @author Joschi <josua.krause@googlemail.com>
  * @param <E> The type of this sequence.
  */
-public final class ArraySequence<E> extends AbstractSequence<E> {
+public final class ArraySequence<E> extends FlatSequence<E> {
 
   /**
    * Creates a persistent sequence out of an array.
@@ -55,59 +52,14 @@ public final class ArraySequence<E> extends AbstractSequence<E> {
   }
 
   @Override
-  public Iterator<E> iterator() {
-    return new Iterator<E>() {
-
-      private int pos;
-
-      @Override
-      public boolean hasNext() {
-        return pos < array.length;
-      }
-
-      @Override
-      public E next() {
-        if(pos >= array.length) throw new NoSuchElementException();
-        return array[pos++];
-      }
-
-      @Override
-      public void remove() {
-        throw new UnsupportedOperationException();
-      }
-
-    };
-  }
-
-  /** A soft reference to the converted sequence. */
-  // maybe use SoftReference here to ensure longer live-span
-  private volatile WeakReference<TrieSequence<E>> converted;
-
-  /**
-   * Converts this sequence into a fast modifiable trie sequence. The resulting
-   * sequence may be cached via a soft reference.
-   * 
-   * @return The converted sequence.
-   */
-  private TrieSequence<E> convert() {
-    TrieSequence<E> res = null;
-    if(converted == null || (res = converted.get()) == null) {
-      res = TrieSequence.from(array);
-      converted = new WeakReference<TrieSequence<E>>(res);
-    }
-    return res;
-  }
-
-  @Override
-  public PersistentSequence<E> add(final E item) {
-    return convert().add(item);
+  protected TrieSequence<E> asTrieSequence() {
+    return TrieSequence.from(array);
   }
 
   @Override
   @SuppressWarnings("unchecked")
   public PersistentSequence<E> append(final PersistentSequence<? extends E> seq) {
-    if(seq.size() == 0) return this;
-    if(!(seq instanceof ArraySequence)) return convert().append(seq);
+    if(!(seq instanceof ArraySequence)) return super.append(seq);
 
     final ArraySequence<E> other = (ArraySequence<E>) seq;
     final int newLength = array.length + other.array.length;

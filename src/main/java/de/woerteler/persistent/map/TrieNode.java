@@ -22,6 +22,11 @@ abstract class TrieNode {
     @Override
     Object get(final int h, final Object k, final int l) { return null; }
     @Override
+    Object getPositionKey(final int pos) {
+      throw new IndexOutOfBoundsException("pos: " + pos + " size: 0");
+    }
+
+    @Override
     boolean contains(final int h, final Object k, final int l) {
       return false; }
     @Override
@@ -86,6 +91,15 @@ abstract class TrieNode {
    * @return bound value if found, {@code null} otherwise
    */
   abstract Object get(int hash, Object key, int lvl);
+
+  /**
+   * Returns the key at the given position in the arbitrary order defined by the
+   * tree.
+   * 
+   * @param pos The position.
+   * @return The key.
+   */
+  abstract Object getPositionKey(int pos);
 
   /**
    * Checks if the given key exists in the map.
@@ -199,4 +213,5 @@ abstract class TrieNode {
 
   @Override
   public abstract int hashCode();
+
 }
