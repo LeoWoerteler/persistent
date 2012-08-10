@@ -294,7 +294,7 @@ public final class TrieSequence<T> extends AbstractSequence<T> {
           }
           return next.subs;
         }
-        if(!serveCache) throw new NoSuchElementException();
+        assert serveCache;
         serveCache = false;
         return cache;
       }

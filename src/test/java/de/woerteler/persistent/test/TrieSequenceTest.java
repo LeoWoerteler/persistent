@@ -11,6 +11,7 @@ import java.util.NoSuchElementException;
 import org.junit.Test;
 
 import de.woerteler.persistent.ArraySequence;
+import de.woerteler.persistent.Persistent;
 import de.woerteler.persistent.PersistentSequence;
 import de.woerteler.persistent.TrieSequence;
 
@@ -249,7 +250,20 @@ public class TrieSequenceTest {
 
         css = s123.append(s456), csa = s123.append(a456),
 
-        cas = a123.append(s456), caa = a123.append(a456);
+        cas = a123.append(s456), caa = a123.append(a456),
+
+        e = Persistent.empty(),
+
+        es = e.append(s123), se = s123.append(e),
+
+        ea = e.append(a123), ae = a123.append(e)
+
+    /* end of definition */;
+    assertTrue(equalsWithHash(es, s123));
+    assertTrue(equalsWithHash(se, es));
+    assertTrue(equalsWithHash(ea, se));
+    assertTrue(equalsWithHash(ae, ea));
+    assertTrue(equalsWithHash(a123, ae));
     assertTrue(equalsWithHash(a123, s123));
     assertTrue(equalsWithHash(a456, s456));
     assertTrue(equalsWithHash(s123456, a123456));

@@ -1,6 +1,6 @@
 package de.woerteler.persistent;
 
-import java.lang.ref.SoftReference;
+import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -80,7 +80,8 @@ public final class ArraySequence<E> extends AbstractSequence<E> {
   }
 
   /** A soft reference to the converted sequence. */
-  private volatile SoftReference<TrieSequence<E>> converted;
+  // maybe use SoftReference here to ensure longer live-span
+  private volatile WeakReference<TrieSequence<E>> converted;
 
   /**
    * Converts this sequence into a fast modifiable trie sequence. The resulting
@@ -92,7 +93,7 @@ public final class ArraySequence<E> extends AbstractSequence<E> {
     TrieSequence<E> res = null;
     if(converted == null || (res = converted.get()) == null) {
       res = TrieSequence.from(array);
-      converted = new SoftReference<TrieSequence<E>>(res);
+      converted = new WeakReference<TrieSequence<E>>(res);
     }
     return res;
   }
@@ -106,7 +107,6 @@ public final class ArraySequence<E> extends AbstractSequence<E> {
   @SuppressWarnings("unchecked")
   public PersistentSequence<E> append(final PersistentSequence<? extends E> seq) {
     if(seq.size() == 0) return this;
-    if(size() == 0) return (PersistentSequence<E>) seq;
     if(!(seq instanceof ArraySequence)) return convert().append(seq);
 
     final ArraySequence<E> other = (ArraySequence<E>) seq;
