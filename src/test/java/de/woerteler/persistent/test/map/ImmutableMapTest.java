@@ -6,6 +6,7 @@ import static org.junit.Assert.*;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import org.junit.Test;
@@ -14,6 +15,7 @@ import de.woerteler.persistent.Persistent;
 import de.woerteler.persistent.PersistentSequence;
 import de.woerteler.persistent.map.ImmutableMap;
 import de.woerteler.persistent.map.PersistentMap;
+import de.woerteler.persistent.map.PersistentMap.PersistentEntry;
 
 /**
  * Tests for the {@link ImmutableMap} data structure.
@@ -28,7 +30,7 @@ public class ImmutableMapTest {
   private static ImmutableMap<Number, Number> mapFrom(final Number... numbers) {
     ImmutableMap<Number, Number> map = ImmutableMap.empty();
     for(final Number n : numbers) {
-      map = map.insert(n, n);
+      map = map.put(n, n);
     }
     return map;
   }
@@ -42,7 +44,7 @@ public class ImmutableMapTest {
   private static ImmutableMap<Number, Number> mapFromPairs(final Number... prs) {
     ImmutableMap<Number, Number> map = ImmutableMap.empty();
     for(int i = 0; i < prs.length; i++) {
-      map = map.insert(prs[i], prs[++i]);
+      map = map.put(prs[i], prs[++i]);
     }
     return map;
   }
@@ -65,17 +67,19 @@ public class ImmutableMapTest {
   @Test public void testEmpty() {
     final ImmutableMap<Integer, Integer> map = ImmutableMap.empty();
     assertEquals("size", 0, map.size());
-    assertSame("delete", map, map.delete(123));
+    assertSame("delete", map, map.remove(123));
     assertNull("lookup", map.get(123));
-    assertFalse(map.contains(42));
+    assertFalse(map.containsKey(42));
     assertTrue(map.keySequence() == (PersistentSequence<?>) Persistent.empty());
+    assertTrue(map.valueSequence() == (PersistentSequence<?>) Persistent.empty());
+    assertTrue(map.entrySequence() == (PersistentSequence<?>) Persistent.empty());
   }
 
   /** Test for sequentially inserting elements. */
   @Test public void testInsert() {
     ImmutableMap<Integer, Integer> map = ImmutableMap.empty();
     for(int i = 0; i < 1234; i++) {
-      map = map.insert(i, i);
+      map = map.put(i, i);
       assertEquals("size", i + 1, map.size());
       for(int j = i + 1; --j >= 0;) {
         assertEquals("lookup", (Integer) j, map.get(j));
@@ -96,28 +100,28 @@ public class ImmutableMapTest {
   @Test public void deleteLeaf() {
     ImmutableMap<Integer, Integer> map = ImmutableMap.empty();
     for(int i = 0; i < 1000; i++) {
-      map = map.insert(i, i);
+      map = map.put(i, i);
     }
     for(int i = 0; i < 1000; i++) {
-      map = map.delete(i);
+      map = map.remove(i);
       assertEquals("size", map.size(), 1000 - i - 1);
     }
   }
 
   /** Tests if the right element is deleted in case of collisions. */
   @Test public void deleteCollision() {
-    ImmutableMap<Number, Number> map = ImmutableMap.empty();
+    PersistentMap<Number, Number> map = ImmutableMap.empty();
     for(int i = 0; i < 1000; i++) {
-      map = map.addAll(mapFrom((short) i, i, (long) i));
+      map = map.putAll(mapFrom((short) i, i, (long) i));
       assertEquals("size", 3 * (i + 1), map.size());
     }
 
     for(int i = 0; i < 1000; i++) {
-      map = map.delete((short) i);
+      map = map.remove((short) i);
       assertEquals("size", map.size(), 3000 - 3 * i - 1);
-      map = map.delete(i);
+      map = map.remove(i);
       assertEquals("size", map.size(), 3000 - 3 * i - 2);
-      map = map.delete((long) i);
+      map = map.remove((long) i);
       assertEquals("size", map.size(), 3000 - 3 * i - 3);
     }
   }
@@ -125,15 +129,15 @@ public class ImmutableMapTest {
   /** If a key is inserted into a single leaf node, it has to be split. */
   @Test public void splitLeaf() {
     final int size = 1 << ImmutableMap.BITS;
-    assertEquals(2, ImmutableMap.singleton(0, 0).insert(size, size).size());
+    assertEquals(2, ImmutableMap.singleton(0, 0).put(size, size).size());
   }
 
   /** If a key is inserted into a single leaf node, it has to be split. */
   @Test public void splitList() {
     final int size = 1 << (2 * ImmutableMap.BITS);
     final ImmutableMap<Number, Number> list =
-        ImmutableMap.<Number, Number>empty().insert(0, 0).insert(0L, 0L),
-        ins = list.insert(size, size);
+        ImmutableMap.<Number, Number>empty().put(0, 0).put(0L, 0L),
+        ins = list.put(size, size);
     assertEquals(3, ins.size());
     assertEquals(0, ins.get(0));
     assertEquals(size, ins.get(size));
@@ -143,14 +147,14 @@ public class ImmutableMapTest {
   /** If a branch has only one child after a deletion, it is replaced by its child. */
   @Test public void flattenBranch() {
     final int s = 1 << ImmutableMap.BITS;
-    assertEquals(1, ImmutableMap.singleton(0, 0).insert(s, s).delete(0).size());
+    assertEquals(1, ImmutableMap.singleton(0, 0).put(s, s).remove(0).size());
   }
 
   /** If the single child of a branch is also a branch, it can't be flattened. */
   @Test public void dontFlattenNestedBranch() {
     final int s = 1 << (2 * ImmutableMap.BITS);
-    assertEquals(2, ImmutableMap.singleton(0, 0).insert(s, 0).insert(1, 1
-        ).delete(1).size());
+    assertEquals(2, ImmutableMap.singleton(0, 0).put(s, 0).put(1, 1
+        ).remove(1).size());
   }
 
   /** Tests that colliding elements aren't found in leaves. */
@@ -165,14 +169,14 @@ public class ImmutableMapTest {
   @Test public void deleteNonExLeaf() {
     final ImmutableMap<Number, Number> leaf =
         ImmutableMap.<Number, Number>singleton(42, 42);
-    assertSame("collision", leaf, leaf.delete(42L));
-    assertSame("not contained", leaf, leaf.delete(0));
+    assertSame("collision", leaf, leaf.remove(42L));
+    assertSame("not contained", leaf, leaf.remove(0));
   }
 
   /** Tests that colliding elements aren't found in overflow lists. */
   @Test public void getNonExList() {
     final ImmutableMap<Number, Number> list =
-        ImmutableMap.<Number, Number>singleton(42, 42).insert(42L, 42L);
+        ImmutableMap.<Number, Number>singleton(42, 42).put(42L, 42L);
     assertNull("collision", list.get((short) 42));
     assertNull("not contained", list.get(0));
   }
@@ -180,16 +184,16 @@ public class ImmutableMapTest {
   /** Tries to delete a colliding non-existent element from an overflow list. */
   @Test public void deleteNonExList() {
     final ImmutableMap<Number, Number> list =
-        ImmutableMap.<Number, Number>singleton(42, 42).insert(42L, 42L);
-    assertSame("not contained", list, list.delete(0));
-    assertSame("collision", list, list.delete((short) 42));
+        ImmutableMap.<Number, Number>singleton(42, 42).put(42L, 42L);
+    assertSame("not contained", list, list.remove(0));
+    assertSame("collision", list, list.remove((short) 42));
   }
 
   /** Tests that colliding elements aren't found under branches. */
   @Test public void getNonExBranch() {
     final ImmutableMap<Number, Number> leaf =
-        ImmutableMap.<Number, Number>singleton(0, 0).insert(0L, 0L).insert(
-            1, 1).insert(1L, 1L);
+        ImmutableMap.<Number, Number>singleton(0, 0).put(0L, 0L).put(
+            1, 1).put(1L, 1L);
     assertNull("collision", leaf.get((short) 1));
     assertNull("not contained", leaf.get((short) 2));
   }
@@ -197,50 +201,50 @@ public class ImmutableMapTest {
   /** Tries to delete a colliding non-existent element from a branch. */
   @Test public void deleteNonExBranch() {
     final ImmutableMap<Number, Number> leaf =
-        ImmutableMap.<Number, Number>singleton(0, 0).insert(0L, 0L).insert(
-            1, 1).insert(1L, 1L);
-    assertSame("collision", leaf, leaf.delete((short) 1));
-    assertSame("not contained", leaf, leaf.delete((short) 2));
+        ImmutableMap.<Number, Number>singleton(0, 0).put(0L, 0L).put(
+            1, 1).put(1L, 1L);
+    assertSame("collision", leaf, leaf.remove((short) 1));
+    assertSame("not contained", leaf, leaf.remove((short) 2));
   }
 
-  /** Tests the @link {@link ImmutableMap#contains(Object)} method for leaf nodes. */
+  /** Tests the @link {@link ImmutableMap#containsKey(Object)} method for leaf nodes. */
   @Test public void leafContains() {
     final ImmutableMap<Number, Number> leaf =
         ImmutableMap.<Number, Number>singleton(42, 42);
-    assertTrue("contained", leaf.contains(42));
-    assertFalse("not contained", leaf.contains(0));
-    assertFalse("collision", leaf.contains(42L));
+    assertTrue("contained", leaf.containsKey(42));
+    assertFalse("not contained", leaf.containsKey(0));
+    assertFalse("collision", leaf.containsKey(42L));
   }
 
-  /** Tests the @link {@link ImmutableMap#contains(Object)} method for overflow lists. */
+  /** Tests the @link {@link ImmutableMap#containsKey(Object)} method for overflow lists. */
   @Test public void listContains() {
     final ImmutableMap<Number, Number> list =
-        ImmutableMap.<Number, Number>singleton(42, 0).insert((short) 42, 0);
-    assertTrue("contained", list.contains(42));
-    assertTrue("contained2", list.contains((short) 42));
-    assertFalse("not contained", list.contains(0));
-    assertFalse("collision", list.contains(42L));
+        ImmutableMap.<Number, Number>singleton(42, 0).put((short) 42, 0);
+    assertTrue("contained", list.containsKey(42));
+    assertTrue("contained2", list.containsKey((short) 42));
+    assertFalse("not contained", list.containsKey(0));
+    assertFalse("collision", list.containsKey(42L));
   }
 
-  /** Tests the @link {@link ImmutableMap#contains(Object)} method for branch nodes. */
+  /** Tests the @link {@link ImmutableMap#containsKey(Object)} method for branch nodes. */
   @Test public void branchContains() {
     final ImmutableMap<Number, Number> branch =
-        ImmutableMap.<Number, Number>singleton(0, 0).insert(1, 0);
-    assertTrue("contained", branch.contains(0));
-    assertTrue("contained2", branch.contains(1));
-    assertFalse("not contained", branch.contains(42));
-    assertFalse("collision", branch.contains(1L));
+        ImmutableMap.<Number, Number>singleton(0, 0).put(1, 0);
+    assertTrue("contained", branch.containsKey(0));
+    assertTrue("contained2", branch.containsKey(1));
+    assertFalse("not contained", branch.containsKey(42));
+    assertFalse("collision", branch.containsKey(1L));
   }
 
   /** Tests if the empty map is unique. */
   @Test public void uniqueEmpty() {
-    assertSame("not same", mapFrom(1).delete(1), ImmutableMap.empty());
+    assertSame("not same", mapFrom(1).remove(1), ImmutableMap.empty());
   }
 
   /** Replacing a value in a leaf. */
   @Test public void replaceLeaf() {
     final ImmutableMap<Integer, Integer> map1 = ImmutableMap.singleton(0, 0),
-        map2 = map1.insert(0, 42);
+        map2 = map1.put(0, 42);
     assertEquals("size1", 1, map1.size());
     assertEquals("size2", 1, map2.size());
     assertEquals("get", 0, (int) map1.get(0));
@@ -250,26 +254,26 @@ public class ImmutableMapTest {
   /** Replacing a value in an overflow list. */
   @Test public void replaceList() {
     final ImmutableMap<Number, Number> list1 = ImmutableMap.<Number, Number>singleton(42,
-        0).insert((short) 42, 0).insert(42L, 0), list2 = list1.insert(42, 42);
+        0).put((short) 42, 0).put(42L, 0), list2 = list1.put(42, 42);
     assertEquals("size1", 3, list1.size());
     assertEquals("size2", 3, list2.size());
     assertEquals("get", 0, list1.get(42));
     assertEquals("get", 42, list2.get(42));
   }
 
-  /** Tests {@link ImmutableMap#addAll(PersistentMap)} of a leaf into a leaf. */
+  /** Tests {@link ImmutableMap#putAll(PersistentMap)} of a leaf into a leaf. */
   @Test public void addLeafLeaf() {
     final ImmutableMap<Number, Number> leaf = mapFrom(0),
         replace = mapFromPairs(0, 1), conflict = mapFromPairs(0L, 2),
         other = mapFromPairs(42, 3), split = mapFromPairs(1 << ImmutableMap.BITS, 4);
-    assertEquals(leaf.addAll(replace), replace);
-    assertEquals(leaf.addAll(conflict), mapFromPairs(0, 0, 0L, 2));
-    assertEquals(leaf.addAll(other), mapFromPairs(0, 0, 42, 3));
-    assertEquals(leaf.addAll(split), mapFromPairs(0, 0, 1 << ImmutableMap.BITS, 4));
+    assertEquals(leaf.putAll(replace), replace);
+    assertEquals(leaf.putAll(conflict), mapFromPairs(0, 0, 0L, 2));
+    assertEquals(leaf.putAll(other), mapFromPairs(0, 0, 42, 3));
+    assertEquals(leaf.putAll(split), mapFromPairs(0, 0, 1 << ImmutableMap.BITS, 4));
   }
 
   /**
-   * Tests {@link ImmutableMap#addAll(PersistentMap)} of an overflow list into a
+   * Tests {@link ImmutableMap#putAll(PersistentMap)} of an overflow list into a
    * leaf.
    */
   @Test public void addLeafList() {
@@ -277,26 +281,26 @@ public class ImmutableMapTest {
     final ImmutableMap<Number, Number> leaf = mapFrom(0),
         replace = mapFromPairs(0, 1, 0L, 1), conflict = mapFromPairs(0L, 2, (short) 0, 2),
         other = mapFromPairs(42, 3, 42L, 3), split = mapFromPairs(next, 4, 1L * next, 4);
-    assertEquals(leaf.addAll(replace), replace);
-    assertEquals(leaf.addAll(conflict), mapFromPairs(0, 0, 0L, 2, (short) 0, 2));
-    assertEquals(leaf.addAll(other), mapFromPairs(0, 0, 42, 3, 42L, 3));
-    assertEquals(leaf.addAll(split), mapFromPairs(0, 0, next, 4, 1L * next, 4));
+    assertEquals(leaf.putAll(replace), replace);
+    assertEquals(leaf.putAll(conflict), mapFromPairs(0, 0, 0L, 2, (short) 0, 2));
+    assertEquals(leaf.putAll(other), mapFromPairs(0, 0, 42, 3, 42L, 3));
+    assertEquals(leaf.putAll(split), mapFromPairs(0, 0, next, 4, 1L * next, 4));
   }
 
-  /** Tests {@link ImmutableMap#addAll(PersistentMap)} of a branch into a leaf. */
+  /** Tests {@link ImmutableMap#putAll(PersistentMap)} of a branch into a leaf. */
   @Test public void addLeafBranch() {
     final int next = 1 << ImmutableMap.BITS;
     final ImmutableMap<Number, Number> leaf = mapFrom(0),
         replace = mapFromPairs(0, 1, 1, 1), conflict = mapFromPairs(0L, 2, 1, 2),
         other = mapFromPairs(1, 3, 2, 3), split = mapFromPairs(next, 4, next + 1, 4);
-    assertEquals(leaf.addAll(replace), replace);
-    assertEquals(leaf.addAll(conflict), mapFromPairs(0, 0, 0L, 2, 1, 2));
-    assertEquals(leaf.addAll(other), mapFromPairs(0, 0, 1, 3, 2, 3));
-    assertEquals(leaf.addAll(split), mapFromPairs(0, 0, next, 4, next + 1, 4));
+    assertEquals(leaf.putAll(replace), replace);
+    assertEquals(leaf.putAll(conflict), mapFromPairs(0, 0, 0L, 2, 1, 2));
+    assertEquals(leaf.putAll(other), mapFromPairs(0, 0, 1, 3, 2, 3));
+    assertEquals(leaf.putAll(split), mapFromPairs(0, 0, next, 4, next + 1, 4));
   }
 
   /**
-   * Tests {@link ImmutableMap#addAll(PersistentMap)} of a leaf into an overflow
+   * Tests {@link ImmutableMap#putAll(PersistentMap)} of a leaf into an overflow
    * list.
    */
   @Test public void addListLeaf() {
@@ -304,14 +308,14 @@ public class ImmutableMapTest {
     final ImmutableMap<Number, Number> list = mapFrom(0, 0L),
         replace = mapFromPairs(0, 1), conflict = mapFromPairs((short) 0, 2),
         other = mapFromPairs(1, 3), split = mapFromPairs(next, 4);
-    assertEquals(list.addAll(replace), mapFromPairs(0, 1, 0L, 0L));
-    assertEquals(list.addAll(conflict), mapFromPairs(0, 0, 0L, 0L, (short) 0, 2));
-    assertEquals(list.addAll(other), mapFromPairs(0, 0, 0L, 0L, 1, 3));
-    assertEquals(list.addAll(split), mapFromPairs(0, 0, 0L, 0L, next, 4));
+    assertEquals(list.putAll(replace), mapFromPairs(0, 1, 0L, 0L));
+    assertEquals(list.putAll(conflict), mapFromPairs(0, 0, 0L, 0L, (short) 0, 2));
+    assertEquals(list.putAll(other), mapFromPairs(0, 0, 0L, 0L, 1, 3));
+    assertEquals(list.putAll(split), mapFromPairs(0, 0, 0L, 0L, next, 4));
   }
 
   /**
-   * Tests {@link ImmutableMap#addAll(PersistentMap)} of an overflow list into
+   * Tests {@link ImmutableMap#putAll(PersistentMap)} of an overflow list into
    * an overflow list.
    */
   @Test public void addListList() {
@@ -321,15 +325,15 @@ public class ImmutableMapTest {
         conflict = mapFromPairs((short) 0, 2, (byte) 0, 2),
         other = mapFromPairs(1, 3, 1L, 3),
         split = mapFromPairs(next, 4, 1L * next, 4);
-    assertEquals(list.addAll(replace), replace);
-    assertEquals(list.addAll(conflict),
+    assertEquals(list.putAll(replace), replace);
+    assertEquals(list.putAll(conflict),
         mapFromPairs(0, 0, 0L, 0L, (short) 0, 2, (byte) 0, 2));
-    assertEquals(list.addAll(other), mapFromPairs(0, 0, 0L, 0L, 1, 3, 1L, 3));
-    assertEquals(list.addAll(split), mapFromPairs(0, 0, 0L, 0L, next, 4, 1L * next, 4));
+    assertEquals(list.putAll(other), mapFromPairs(0, 0, 0L, 0L, 1, 3, 1L, 3));
+    assertEquals(list.putAll(split), mapFromPairs(0, 0, 0L, 0L, next, 4, 1L * next, 4));
   }
 
   /**
-   * Tests {@link ImmutableMap#addAll(PersistentMap)} of a branch into an
+   * Tests {@link ImmutableMap#putAll(PersistentMap)} of a branch into an
    * overflow list.
    */
   @Test public void addListBranch() {
@@ -339,14 +343,14 @@ public class ImmutableMapTest {
         conflict = mapFromPairs((short) 0, 2, 1, 2),
         other = mapFromPairs(1, 3, 2, 3),
         split = mapFromPairs(next, 4, next + 1, 4);
-    assertEquals(list.addAll(replace), replace);
-    assertEquals(list.addAll(conflict), mapFromPairs(0, 0, 0L, 0L, (short) 0, 2, 1, 2));
-    assertEquals(list.addAll(other), mapFromPairs(0, 0, 0L, 0L, 1, 3, 2, 3));
-    assertEquals(list.addAll(split), mapFromPairs(0, 0, 0L, 0L, next, 4, next + 1, 4));
+    assertEquals(list.putAll(replace), replace);
+    assertEquals(list.putAll(conflict), mapFromPairs(0, 0, 0L, 0L, (short) 0, 2, 1, 2));
+    assertEquals(list.putAll(other), mapFromPairs(0, 0, 0L, 0L, 1, 3, 2, 3));
+    assertEquals(list.putAll(split), mapFromPairs(0, 0, 0L, 0L, next, 4, next + 1, 4));
   }
 
   /**
-   * Tests {@link ImmutableMap#addAll(PersistentMap)} of a branch into an
+   * Tests {@link ImmutableMap#putAll(PersistentMap)} of a branch into an
    * overflow list.
    */
   @Test public void addBranchLeaf() {
@@ -356,14 +360,14 @@ public class ImmutableMapTest {
         conflict = mapFromPairs((short) 0, 2),
         other = mapFromPairs(2, 3),
         split = mapFromPairs(next, 4);
-    assertEquals(branch.addAll(replace), mapFromPairs(0, 1, 1, 0));
-    assertEquals(branch.addAll(conflict), mapFromPairs(0, 0, 1, 0, (short) 0, 2));
-    assertEquals(branch.addAll(other), mapFromPairs(0, 0, 1, 0, 2, 3));
-    assertEquals(branch.addAll(split), mapFromPairs(0, 0, 1, 0, next, 4));
+    assertEquals(branch.putAll(replace), mapFromPairs(0, 1, 1, 0));
+    assertEquals(branch.putAll(conflict), mapFromPairs(0, 0, 1, 0, (short) 0, 2));
+    assertEquals(branch.putAll(other), mapFromPairs(0, 0, 1, 0, 2, 3));
+    assertEquals(branch.putAll(split), mapFromPairs(0, 0, 1, 0, next, 4));
   }
 
   /**
-   * Tests {@link ImmutableMap#addAll(PersistentMap)} of a branch into an
+   * Tests {@link ImmutableMap#putAll(PersistentMap)} of a branch into an
    * overflow list.
    */
   @Test public void addBranchList() {
@@ -373,15 +377,15 @@ public class ImmutableMapTest {
         conflict = mapFromPairs((short) 0, 2, (byte) 0, 2),
         other = mapFromPairs(2, 3, 2L, 3),
         split = mapFromPairs(next, 4, 1L * next, 4);
-    assertEquals(branch.addAll(replace), mapFromPairs(0, 1, 0L, 1, 1, 0));
-    assertEquals(branch.addAll(conflict),
+    assertEquals(branch.putAll(replace), mapFromPairs(0, 1, 0L, 1, 1, 0));
+    assertEquals(branch.putAll(conflict),
         mapFromPairs(0, 0, 1, 0, (short) 0, 2, (byte) 0, 2));
-    assertEquals(branch.addAll(other), mapFromPairs(0, 0, 1, 0, 2, 3, 2L, 3));
-    assertEquals(branch.addAll(split), mapFromPairs(0, 0, 1, 0, next, 4, 1L * next, 4));
+    assertEquals(branch.putAll(other), mapFromPairs(0, 0, 1, 0, 2, 3, 2L, 3));
+    assertEquals(branch.putAll(split), mapFromPairs(0, 0, 1, 0, next, 4, 1L * next, 4));
   }
 
   /**
-   * Tests {@link ImmutableMap#addAll(PersistentMap)} of a branch into an
+   * Tests {@link ImmutableMap#putAll(PersistentMap)} of a branch into an
    * overflow list.
    */
   @Test public void addBranchBranch() {
@@ -391,14 +395,14 @@ public class ImmutableMapTest {
         conflict = mapFromPairs(0L, 2, 1L, 2),
         other = mapFromPairs(2, 3, 3, 3),
         split = mapFromPairs(next, 4, next + 1, 4);
-    assertEquals(branch.addAll(replace), replace);
-    assertEquals(branch.addAll(conflict), mapFromPairs(0, 0, 1, 0, 0L, 2, 1L, 2));
-    assertEquals(branch.addAll(other), mapFromPairs(0, 0, 1, 0, 2, 3, 3, 3));
-    assertEquals(branch.addAll(split), mapFromPairs(0, 0, 1, 0, next, 4, next + 1, 4));
+    assertEquals(branch.putAll(replace), replace);
+    assertEquals(branch.putAll(conflict), mapFromPairs(0, 0, 1, 0, 0L, 2, 1L, 2));
+    assertEquals(branch.putAll(other), mapFromPairs(0, 0, 1, 0, 2, 3, 3, 3));
+    assertEquals(branch.putAll(split), mapFromPairs(0, 0, 1, 0, next, 4, next + 1, 4));
   }
 
   /**
-   * Tests {@link ImmutableMap#addAll(PersistentMap)} of nodes into an empty
+   * Tests {@link ImmutableMap#putAll(PersistentMap)} of nodes into an empty
    * node.
    */
   @SuppressWarnings("unchecked")
@@ -407,8 +411,8 @@ public class ImmutableMapTest {
         list = mapFromPairs(0, 2, 0L, 2), branch = mapFromPairs(0, 3, 1, 3);
     for(final ImmutableMap<Number, Number> map
         : Arrays.asList(empty, leaf, list, branch)) {
-      assertSame(map, empty.addAll(map));
-      assertSame(map, map.addAll(empty));
+      assertSame(map, empty.putAll(map));
+      assertSame(map, map.putAll(empty));
       assertEquals("argument: " + map.toString(), empty == map, empty.equals(map));
       assertEquals("reveiver: " + map.toString(), empty == map, map.equals(empty));
     }
@@ -488,14 +492,16 @@ public class ImmutableMapTest {
     final int size = 1000;
     PersistentMap<Long, Integer> map = ImmutableMap.empty();
     for(int i = 0; i < size; ++i) {
-      map = map.insert((long) i, i);
-      map = map.insert((long) (i + 1) * size, i);
+      map = map.put((long) i, i);
+      map = map.put((long) (i + 1) * size, i);
     }
     // hash collisions
-    map = map.insert(1L << 32, 1);
-    map = map.insert(2L << 32, 2);
+    map = map.put(1L << 32, 1);
+    map = map.put(2L << 32, 2);
     assertEquals(map.size(), 2 * size + 2);
     final PersistentSequence<Long> keys = map.keySequence();
+    final PersistentSequence<Integer> values = map.valueSequence();
+    final PersistentSequence<PersistentEntry<Long, Integer>> entries = map.entrySequence();
     assertEquals(keys.size(), 2 * size + 2);
     for(int i = 0; i < size; ++i) {
       assertTrue(keys.contains((long) i));
@@ -503,6 +509,41 @@ public class ImmutableMapTest {
     }
     assertTrue(keys.contains(1L << 32));
     assertTrue(keys.contains(2L << 32));
+    // check corresponding sequences -- this relies heavily on
+    // all sequences having the same arbitrary order
+    final Iterator<Long> itl = keys.iterator();
+    final Iterator<Integer> iti = values.iterator();
+    final Iterator<PersistentEntry<Long, Integer>> ite = entries.iterator();
+    assertEquals(keys.size(), values.size());
+    assertEquals(values.size(), entries.size());
+    PersistentEntry<Long, Integer> prev = null;
+    for(int pos = 0; pos < keys.size(); ++pos) {
+      if(!itl.hasNext()) throw new IllegalStateException();
+      final long li = itl.next();
+      if(!iti.hasNext()) throw new IllegalStateException();
+      final int ii = iti.next();
+      if(!ite.hasNext()) throw new IllegalStateException();
+      final PersistentEntry<Long, Integer> ei = ite.next();
+      final long ld = keys.get(pos);
+      final int id = values.get(pos);
+      final PersistentEntry<Long, Integer> ed = entries.get(pos);
+      assertEquals(li, ld);
+      assertEquals((long) ei.getKey(), li);
+      assertEquals((long) ed.getKey(), (long) ei.getKey());
+      assertEquals(ld, (long) ed.getKey());
+      assertEquals(ii, id);
+      assertEquals((int) ei.getValue(), ii);
+      assertEquals((int) ed.getValue(), (int) ei.getValue());
+      assertEquals(id, (int) ed.getValue());
+      assertEquals(ei, ed);
+      assertEquals(ei.hashCode(), ed.hashCode());
+      assertEquals(ei, ei);
+      assertFalse(ei.equals(prev));
+      prev = ei;
+    }
+    assertFalse(itl.hasNext());
+    assertFalse(iti.hasNext());
+    assertFalse(ite.hasNext());
     // sanity -- toString() must not throw an exception
     map.toString();
     keys.toString();

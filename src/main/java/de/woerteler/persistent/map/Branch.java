@@ -88,17 +88,26 @@ final class Branch extends TrieNode {
   }
 
   @Override
-  Object getPositionKey(final int pos) {
-    int p = pos;
+  TrieNode getAt(final Pos pos) {
     final int s = Integer.bitCount(used);
     for(int i = 0, j = 0; i < s; i++, j++) {
       while((used & 1 << j) == 0) {
         j++;
       }
       final TrieNode sub = kids[j];
-      if(p < sub.size) return sub.getPositionKey(p);
-      p -= sub.size;
+      if(pos.pos < sub.size) return sub;
+      pos.pos -= sub.size;
     }
+    throw new InternalError();
+  }
+
+  @Override
+  Object getKey(final int pos) {
+    throw new InternalError();
+  }
+
+  @Override
+  Object getValue(final int pos) {
     throw new InternalError();
   }
 

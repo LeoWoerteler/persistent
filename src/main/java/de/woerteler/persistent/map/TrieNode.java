@@ -22,8 +22,18 @@ abstract class TrieNode {
     @Override
     Object get(final int h, final Object k, final int l) { return null; }
     @Override
-    Object getPositionKey(final int pos) {
+    Object getKey(final int pos) {
       throw new IndexOutOfBoundsException("pos: " + pos + " size: 0");
+    }
+
+    @Override
+    Object getValue(final int pos) {
+      throw new IndexOutOfBoundsException("pos: " + pos + " size: 0");
+    }
+
+    @Override
+    TrieNode getAt(final Pos pos) {
+      return null;
     }
 
     @Override
@@ -93,13 +103,57 @@ abstract class TrieNode {
   abstract Object get(int hash, Object key, int lvl);
 
   /**
-   * Returns the key at the given position in the arbitrary order defined by the
-   * tree.
+   * A position which can be altered.
+   * 
+   * @author Joschi <josua.krause@googlemail.com>
+   */
+  static final class Pos {
+    /** The position value. */
+    int pos;
+
+    /**
+     * Creates a position.
+     * 
+     * @param pos The initial value.
+     */
+    public Pos(final int pos) {
+      this.pos = pos;
+    }
+
+    /**
+     * Copies the given position.
+     * 
+     * @param pos The position.
+     */
+    public Pos(final Pos pos) {
+      this.pos = pos.pos;
+    }
+  }
+
+  /**
+   * Returns the node at the given position in the arbitrary order defined by
+   * the tree.
+   * 
+   * @param pos The position which is changed accordingly.
+   * @return The node or <code>null</code> when it is a leaf.
+   */
+  abstract TrieNode getAt(Pos pos);
+
+  /**
+   * Getter.
    * 
    * @param pos The position.
-   * @return The key.
+   * @return The key at the given position.
    */
-  abstract Object getPositionKey(int pos);
+  abstract Object getKey(int pos);
+
+  /**
+   * Getter.
+   * 
+   * @param pos The position.
+   * @return The value at the given position.
+   */
+  abstract Object getValue(int pos);
 
   /**
    * Checks if the given key exists in the map.

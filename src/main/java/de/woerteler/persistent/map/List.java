@@ -104,8 +104,18 @@ final class List extends TrieNode {
   }
 
   @Override
-  Object getPositionKey(final int pos) {
+  TrieNode getAt(final Pos pos) {
+    return null;
+  }
+
+  @Override
+  Object getKey(final int pos) {
     return keys[pos];
+  }
+
+  @Override
+  Object getValue(final int pos) {
+    return values[pos];
   }
 
   @Override

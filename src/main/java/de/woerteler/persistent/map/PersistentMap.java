@@ -21,7 +21,7 @@ public interface PersistentMap<K, V> {
    * @param value value to insert
    * @return updated map if changed, {@code this} otherwise
    */
-  PersistentMap<K, V> insert(final K key, final V value);
+  PersistentMap<K, V> put(final K key, final V value);
 
   /**
    * Gets the value from this map.
@@ -44,7 +44,7 @@ public interface PersistentMap<K, V> {
    * @param key key to look for
    * @return {@code true()}, if the key exists, {@code false()} otherwise
    */
-  boolean contains(K key);
+  boolean containsKey(K key);
 
   /**
    * Deletes a key from this map.
@@ -52,7 +52,7 @@ public interface PersistentMap<K, V> {
    * @param key key to delete
    * @return updated map if changed, {@code this} otherwise
    */
-  PersistentMap<K, V> delete(K key);
+  PersistentMap<K, V> remove(K key);
 
   /**
    * Adds all bindings from the given map into {@code this}.
@@ -60,7 +60,7 @@ public interface PersistentMap<K, V> {
    * @param other map to add
    * @return updated map if changed, {@code this} otherwise
    */
-  PersistentMap<K, V> addAll(PersistentMap<K, V> other);
+  PersistentMap<K, V> putAll(PersistentMap<K, V> other);
 
   /**
    * Adds all bindings from the given map into {@code this}.
@@ -68,7 +68,7 @@ public interface PersistentMap<K, V> {
    * @param other map to add
    * @return updated map if changed, {@code this} otherwise
    */
-  PersistentMap<K, V> addAll(Map<? extends K, ? extends V> other);
+  PersistentMap<K, V> putAll(Map<? extends K, ? extends V> other);
 
   /**
    * Returns a sequence of all keys in an arbitrary order.
@@ -76,5 +76,42 @@ public interface PersistentMap<K, V> {
    * @return A sequence of all keys.
    */
   PersistentSequence<K> keySequence();
+
+  /**
+   * Returns a sequence of all values in an arbitrary order.
+   * 
+   * @return A sequence of all values.
+   */
+  PersistentSequence<V> valueSequence();
+
+  /**
+   * A key value pair from a persistent map.
+   * 
+   * @author Joschi <josua.krause@googlemail.com>
+   * @param <K> The key type.
+   * @param <V> The value type.
+   */
+  interface PersistentEntry<K, V> {
+
+    /**
+     * Getter.
+     * @return The key.
+     */
+    K getKey();
+
+    /**
+     * Getter.
+     * @return The value.
+     */
+    V getValue();
+
+  }
+
+  /**
+   * Returns a sequence of all entries in an arbitrary order.
+   * 
+   * @return A sequence of all entries.
+   */
+  PersistentSequence<PersistentEntry<K, V>> entrySequence();
 
 }

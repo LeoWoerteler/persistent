@@ -59,9 +59,20 @@ final class Leaf extends TrieNode {
   }
 
   @Override
-  Object getPositionKey(final int pos) {
+  TrieNode getAt(final Pos pos) {
+    return null;
+  }
+
+  @Override
+  Object getKey(final int pos) {
     assert pos == 0;
     return key;
+  }
+
+  @Override
+  Object getValue(final int pos) {
+    assert pos == 0;
+    return value;
   }
 
   @Override
