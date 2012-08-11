@@ -112,6 +112,7 @@ public class ArraySequenceTest {
         assertEquals(tmp.get(tmp.size() - 1), (Integer) i);
         assertEquals(tmp.size(), size + 1);
       }
+      // enforce to clear the weak reference at some point
       for(int i = 0; i < 2; ++i) {
         System.gc();
         System.runFinalization();

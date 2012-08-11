@@ -298,8 +298,7 @@ public final class ImmutableMap<K, V> extends AbstractPersistentMap<K, V> {
   }
 
   /**
-   * A simple implementation of the
-   * {@link de.woerteler.persistent.map.PersistentMap.PersistentEntry}
+   * A simple implementation of the {@link PersistentMap.PersistentEntry}
    * interface.
    * 
    * @author Joschi <josua.krause@googlemail.com>
@@ -339,10 +338,7 @@ public final class ImmutableMap<K, V> extends AbstractPersistentMap<K, V> {
       if(obj == this) return true;
       if(!(obj instanceof PersistentEntry)) return false;
       final PersistentEntry<?, ?> e = (PersistentEntry<?, ?>) obj;
-      return ((key == null && e.getKey() == null)
-          || (key != null && key.equals(e.getKey())))
-          && ((value == null && e.getValue() == null)
-          || (value != null && value.equals(e.getValue())));
+      return TrieNode.equal(key, e.getKey()) && TrieNode.equal(value, e.getValue());
     }
 
     @Override
@@ -361,7 +357,7 @@ public final class ImmutableMap<K, V> extends AbstractPersistentMap<K, V> {
     return new FlatSequence<PersistentEntry<K, V>>() {
 
       @Override
-      public Iterator<de.woerteler.persistent.map.PersistentMap.PersistentEntry<K, V>> iterator() {
+      public Iterator<PersistentEntry<K, V>> iterator() {
         return new PersistentIterator<PersistentEntry<K, V>>(r) {
 
           @Override

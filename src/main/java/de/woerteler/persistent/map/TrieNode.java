@@ -276,7 +276,7 @@ abstract class TrieNode {
    * @return <code>true</code> if both objects equal each other or both are
    *         <code>null</code>.
    */
-  public static final boolean equal(final Object a, final Object b) {
+  static final boolean equal(final Object a, final Object b) {
     return (a == null && b == null) || (a != null && a.equals(b));
   }
 
