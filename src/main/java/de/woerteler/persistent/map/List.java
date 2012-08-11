@@ -1,6 +1,6 @@
 package de.woerteler.persistent.map;
 
-import java.util.*;
+import java.util.BitSet;
 
 /**
  * Leaf that contains a collision list of keys with the same hash code.
@@ -45,10 +45,9 @@ final class List extends TrieNode {
 
   @Override
   TrieNode delete(final int h, final Object k, final int l) {
-
     if(h == hash) {
       for(int i = size; i-- > 0;) {
-        if(k.equals(keys[i])) {
+        if(equal(k, keys[i])) {
           // found entry
           if(size == 2) {
             // single leaf remains
@@ -68,7 +67,7 @@ final class List extends TrieNode {
     // same hash, replace or merge
     if(h == hash) {
       for(int i = keys.length; i-- > 0;) {
-        if(k.equals(keys[i])) {
+        if(equal(k, keys[i])) {
           // replace value
           final Object[] vs = values.clone();
           vs[i] = v;
@@ -96,16 +95,34 @@ final class List extends TrieNode {
 
   @Override
   Object get(final int h, final Object k, final int l) {
-    if(h == hash)
+    if(h == hash) {
       for(int i = keys.length; --i >= 0;)
-        if(k.equals(keys[i])) return values[i];
+        if(equal(k, keys[i])) return values[i];
+    }
     return null;
   }
 
   @Override
+  TrieNode getAt(final Pos pos) {
+    return null;
+  }
+
+  @Override
+  Object getKey(final int pos) {
+    return keys[pos];
+  }
+
+  @Override
+  Object getValue(final int pos) {
+    return values[pos];
+  }
+
+  @Override
   boolean contains(final int h, final Object k, final int u) {
-    if(h == hash) for(int i = keys.length; --i >= 0;)
-      if(k.equals(keys[i])) return true;
+    if(h == hash) {
+      for(int i = keys.length; --i >= 0;)
+        if(equal(k, keys[i])) return true;
+    }
     return false;
   }
 
@@ -128,7 +145,8 @@ final class List extends TrieNode {
   @Override
   TrieNode add(final Leaf o, final int l) {
     if(hash == o.hash) {
-      for(final Object k : keys) if(k.equals(o.key)) return this;
+      for(final Object k : keys)
+        if(equal(k, o.key)) return this;
       return new List(hash, append(keys, o.key), append(values, o.value));
     }
 
@@ -158,7 +176,10 @@ final class List extends TrieNode {
       outer: for(int i = 0; i < size; i++) {
         final Object ok = o.keys[i];
         // skip all entries that are overridden
-        for(final Object k : keys) if(k.equals(ok)) continue outer;
+        for(final Object k : keys)
+          if(equal(k, ok)) {
+          continue outer;
+        }
         // key is not in this list, add it
         ks = append(ks, ok);
         vs = append(vs, o.values[i]);
@@ -197,7 +218,7 @@ final class List extends TrieNode {
   boolean verify() {
     for(int i = 1; i < size; i++) {
       for(int j = i; j-- > 0;) {
-        if(keys[i].equals(keys[j])) return false;
+        if(equal(keys[i], keys[j])) return false;
       }
     }
     return true;
@@ -205,8 +226,9 @@ final class List extends TrieNode {
 
   @Override
   StringBuilder toString(final StringBuilder sb) {
-    for(int i = size; --i >= 0;)
+    for(int i = size; --i >= 0;) {
       sb.append(keys[i]).append(":=").append(values[i]).append(", ");
+    }
     return sb;
   }
 
@@ -223,7 +245,7 @@ final class List extends TrieNode {
       boolean found = false;
       for (int j = find.nextSetBit(0); !found && j >= 0; j = find.nextSetBit(j + 1)) {
         final Object okey = other.keys[j], ovalue = other.values[j];
-        if(key.equals(okey) && (value == null ? ovalue == null : value.equals(ovalue))) {
+        if(equal(key, okey) && equal(value, ovalue)) {
           find.clear(j);
           found = true;
         }
@@ -236,8 +258,10 @@ final class List extends TrieNode {
   @Override
   public int hashCode() {
     int h = 0;
-    for(int i = 0; i < keys.length; i++)
+    for(int i = 0; i < keys.length; i++) {
       h ^= values[i] == null ? 0 : values[i].hashCode();
+    }
     return 31 * h + hash;
   }
+
 }

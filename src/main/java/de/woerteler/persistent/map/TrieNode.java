@@ -5,7 +5,7 @@ package de.woerteler.persistent.map;
  *
  * @author Leo Woerteler
  */
-public abstract class TrieNode {
+abstract class TrieNode {
   /** Number of children on each level. */
   static final int KIDS = 1 << ImmutableMap.BITS;
   /** Mask for the bits used on the current level. */
@@ -21,6 +21,21 @@ public abstract class TrieNode {
       return this; }
     @Override
     Object get(final int h, final Object k, final int l) { return null; }
+    @Override
+    Object getKey(final int pos) {
+      throw new IndexOutOfBoundsException("pos: " + pos + " size: 0");
+    }
+
+    @Override
+    Object getValue(final int pos) {
+      throw new IndexOutOfBoundsException("pos: " + pos + " size: 0");
+    }
+
+    @Override
+    TrieNode getAt(final Pos pos) {
+      return null;
+    }
+
     @Override
     boolean contains(final int h, final Object k, final int l) {
       return false; }
@@ -86,6 +101,59 @@ public abstract class TrieNode {
    * @return bound value if found, {@code null} otherwise
    */
   abstract Object get(int hash, Object key, int lvl);
+
+  /**
+   * A position which can be altered.
+   * 
+   * @author Joschi <josua.krause@googlemail.com>
+   */
+  static final class Pos {
+    /** The position value. */
+    int pos;
+
+    /**
+     * Creates a position.
+     * 
+     * @param pos The initial value.
+     */
+    public Pos(final int pos) {
+      this.pos = pos;
+    }
+
+    /**
+     * Copies the given position.
+     * 
+     * @param pos The position.
+     */
+    public Pos(final Pos pos) {
+      this.pos = pos.pos;
+    }
+  }
+
+  /**
+   * Returns the node at the given position in the arbitrary order defined by
+   * the tree.
+   * 
+   * @param pos The position which is changed accordingly.
+   * @return The node or <code>null</code> when it is a leaf.
+   */
+  abstract TrieNode getAt(Pos pos);
+
+  /**
+   * Getter.
+   * 
+   * @param pos The position.
+   * @return The key at the given position.
+   */
+  abstract Object getKey(int pos);
+
+  /**
+   * Getter.
+   * 
+   * @param pos The position.
+   * @return The value at the given position.
+   */
+  abstract Object getValue(int pos);
 
   /**
    * Checks if the given key exists in the map.
@@ -199,4 +267,17 @@ public abstract class TrieNode {
 
   @Override
   public abstract int hashCode();
+
+  /**
+   * Compares two objects.
+   * 
+   * @param a Object a or <code>null</code>.
+   * @param b Object b or <code>null</code>.
+   * @return <code>true</code> if both objects equal each other or both are
+   *         <code>null</code>.
+   */
+  static final boolean equal(final Object a, final Object b) {
+    return (a == null && b == null) || (a != null && a.equals(b));
+  }
+
 }

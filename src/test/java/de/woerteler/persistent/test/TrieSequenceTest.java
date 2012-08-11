@@ -1,10 +1,19 @@
 package de.woerteler.persistent.test;
 
-import java.util.*;
-
-import org.junit.*;
-import de.woerteler.persistent.TrieSequence;
 import static org.junit.Assert.*;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
+
+import org.junit.Test;
+
+import de.woerteler.persistent.ArraySequence;
+import de.woerteler.persistent.Persistent;
+import de.woerteler.persistent.PersistentSequence;
+import de.woerteler.persistent.TrieSequence;
 
 /**
  * Tests for {@link TrieSequence}.
@@ -15,13 +24,28 @@ public class TrieSequenceTest {
 
   /**
    * Tests {@link Object#equals(Object)} and {@link Object#hashCode()}.
+   * 
    * @param a first object to compare
    * @param b second object to compare
    * @return <code>true</code> iff <code>a</code> is equal to <code>b</code>,
-   *   <code>b</code> is equal to <code>a</code> (commutativity) an the hash codes match
+   *         <code>b</code> is equal to <code>a</code> (commutativity) and the
+   *         hash codes match
    */
-  public static boolean equalsWithHash(final Object a, final Object b) {
+  public static final boolean equalsWithHash(final Object a, final Object b) {
     return a.equals(b) && b.equals(a) && a.hashCode() == b.hashCode();
+  }
+
+  /**
+   * Tests <code>not</code> {@link Object#equals(Object)}.
+   * {@link Object#hashCode()} must not necessarily differ.
+   * 
+   * @param a first object to compare
+   * @param b second object to compare
+   * @return <code>true</code> iff <code>a</code> is not equal to <code>b</code>
+   *         and <code>b</code> is not equal to <code>a</code> (commutativity)
+   */
+  public static final boolean notEqual(final Object a, final Object b) {
+    return !a.equals(b) && !b.equals(a);
   }
 
   /**
@@ -38,7 +62,9 @@ public class TrieSequenceTest {
         return new Iterator<Integer>() {
           @Override public boolean hasNext() { return current < end; }
           @Override public Integer next() { return current++; }
-          @Override public void remove() { }
+
+          @Override
+          public void remove() { /* nothing to do */}
         };
       }
     };
@@ -48,7 +74,9 @@ public class TrieSequenceTest {
   private static final TrieSequence<Integer> TEST;
   static {
     TrieSequence<Integer> test = TrieSequence.empty();
-    for(int i = 0; i < 12345; i++) test = test.add(i);
+    for(int i = 0; i < 12345; i++) {
+      test = test.add(i);
+    }
     TEST = test;
   }
 
@@ -60,7 +88,9 @@ public class TrieSequenceTest {
       assertEquals("Sequence size", i, seq.size());
       seq = seq.add(i);
     }
-    for(int i = 0; i < 1234; i++) assertEquals((Integer) i, seq.get(i));
+    for(int i = 0; i < 1234; i++) {
+      assertEquals((Integer) i, seq.get(i));
+    }
   }
 
   /** Tests if the iterator yields the items in the right order. */
@@ -78,7 +108,9 @@ public class TrieSequenceTest {
     TrieSequence<Integer> seq = TrieSequence.empty();
     for(int i = 0; i < 1000; i++) {
       int j = 0;
-      for(@SuppressWarnings("unused") final Integer it : seq) j++;
+      for(@SuppressWarnings("unused") final Integer it : seq) {
+        j++;
+      }
       assertEquals(i, j);
       seq = seq.add(i);
     }
@@ -122,13 +154,17 @@ public class TrieSequenceTest {
   /** Tests if sequences can be created from arrays. */
   @Test public void fromArray() {
     assertSame(TrieSequence.empty(), TrieSequence.from(new Integer[0]));
-    for(int len : new int[] { 1, TrieSequence.SIZE + TrieSequence.SIZE / 2,
+    for(final int len : new int[] { 1, TrieSequence.SIZE + TrieSequence.SIZE / 2,
         2 * TrieSequence.SIZE }) {
       final Integer[] arr = new Integer[len];
-      for(int j = 0; j < len; j++) arr[j] = j;
+      for(int j = 0; j < len; j++) {
+        arr[j] = j;
+      }
       final TrieSequence<Integer> seq = TrieSequence.from(arr);
       assertEquals("size", len, seq.size());
-      for(int j = 0; j < len; j++) assertEquals("element", (Integer) j, seq.get(j));
+      for(int j = 0; j < len; j++) {
+        assertEquals("element", (Integer) j, seq.get(j));
+      }
     }
   }
 
@@ -137,13 +173,17 @@ public class TrieSequenceTest {
     assertSame(TrieSequence.empty(), TrieSequence.from(Collections.emptyList()));
     final TrieSequence<Integer> single = TrieSequence.singleton(42);
     assertSame(single, TrieSequence.from(single));
-    for(int len : new int[] { 1, TrieSequence.SIZE + TrieSequence.SIZE / 2,
+    for(final int len : new int[] { 1, TrieSequence.SIZE + TrieSequence.SIZE / 2,
         2 * TrieSequence.SIZE }) {
       final List<Integer> list = new ArrayList<Integer>(len);
-      for(int j = 0; j < len; j++) list.add(j);
+      for(int j = 0; j < len; j++) {
+        list.add(j);
+      }
       final TrieSequence<Integer> seq = TrieSequence.from(list);
       assertEquals("size", len, seq.size());
-      for(int j = 0; j < len; j++) assertEquals("element", (Integer) j, seq.get(j));
+      for(int j = 0; j < len; j++) {
+        assertEquals("element", (Integer) j, seq.get(j));
+      }
     }
   }
 
@@ -194,4 +234,59 @@ public class TrieSequenceTest {
     assertEquals(TrieSequence.from(range(0, size + 3)),
         TrieSequence.from(range(0, 3)).append(TrieSequence.from(range(3, size + 3))));
   }
+
+  /** Tests appends on arbitrary sequences. */
+  @Test
+  public void appendArbitrary() {
+    final PersistentSequence<Integer> s123 = TrieSequence.from(1, 2, 3),
+
+        s456 = TrieSequence.from(4, 5, 6),
+
+        a123 = ArraySequence.from(1, 2, 3), a456 = ArraySequence.from(4, 5, 6),
+
+        s123456 = TrieSequence.from(1, 2, 3, 4, 5, 6),
+
+        a123456 = ArraySequence.from(1, 2, 3, 4, 5, 6),
+
+        css = s123.append(s456), csa = s123.append(a456),
+
+        cas = a123.append(s456), caa = a123.append(a456),
+
+        e = Persistent.empty(),
+
+        es = e.append(s123), se = s123.append(e),
+
+        ea = e.append(a123), ae = a123.append(e)
+
+    /* end of definition */;
+    assertTrue(equalsWithHash(es, s123));
+    assertTrue(equalsWithHash(se, es));
+    assertTrue(equalsWithHash(ea, se));
+    assertTrue(equalsWithHash(ae, ea));
+    assertTrue(equalsWithHash(a123, ae));
+    assertTrue(equalsWithHash(a123, s123));
+    assertTrue(equalsWithHash(a456, s456));
+    assertTrue(equalsWithHash(s123456, a123456));
+    assertTrue(notEqual(a123, a456));
+    assertTrue(notEqual(s123, a456));
+    assertTrue(notEqual(a123, s456));
+    assertTrue(notEqual(s123, s456));
+    assertTrue(notEqual(s123, s123456));
+    assertTrue(notEqual(a123, s123456));
+    assertTrue(notEqual(s123, a123456));
+    assertTrue(notEqual(a123, a123456));
+    assertTrue(notEqual(s456, s123456));
+    assertTrue(notEqual(s456, a123456));
+    assertTrue(notEqual(a456, s123456));
+    assertTrue(notEqual(a456, a123456));
+    assertTrue(equalsWithHash(css, a123456));
+    assertTrue(equalsWithHash(csa, a123456));
+    assertTrue(equalsWithHash(cas, a123456));
+    assertTrue(equalsWithHash(caa, a123456));
+    assertTrue(equalsWithHash(css, s123456));
+    assertTrue(equalsWithHash(csa, s123456));
+    assertTrue(equalsWithHash(cas, s123456));
+    assertTrue(equalsWithHash(caa, s123456));
+  }
+
 }

@@ -71,7 +71,9 @@ final class Branch extends TrieNode {
         // check whether the child depends on the right offset
         if(!(single instanceof Branch)) return single;
       }
-    } else nu = used;
+    } else {
+      nu = used;
+    }
 
     final TrieNode[] ks = copyKids();
     ks[key] = nsub;
@@ -83,6 +85,30 @@ final class Branch extends TrieNode {
     final int key = key(h, l);
     final TrieNode sub = kids[key];
     return sub == null ? null : sub.get(h, k, l + 1);
+  }
+
+  @Override
+  TrieNode getAt(final Pos pos) {
+    final int s = Integer.bitCount(used);
+    for(int i = 0, j = 0; i < s; i++, j++) {
+      while((used & 1 << j) == 0) {
+        j++;
+      }
+      final TrieNode sub = kids[j];
+      if(pos.pos < sub.size) return sub;
+      pos.pos -= sub.size;
+    }
+    throw new InternalError();
+  }
+
+  @Override
+  Object getKey(final int pos) {
+    throw new InternalError();
+  }
+
+  @Override
+  Object getValue(final int pos) {
+    throw new InternalError();
   }
 
   @Override
@@ -98,7 +124,9 @@ final class Branch extends TrieNode {
   StringBuilder toString(final StringBuilder sb, final String ind) {
     final int s = Integer.bitCount(used);
     for(int i = 0, j = 0; i < s; i++, j++) {
-      while((used & 1 << j) == 0) j++;
+      while((used & 1 << j) == 0) {
+        j++;
+      }
       final int e = i == s - 1 ? 2 : 0;
       sb.append(ind).append(ENDS[e]).append(
           String.format("%x", j)).append('\n');
@@ -120,7 +148,9 @@ final class Branch extends TrieNode {
       final TrieNode ins = ch.add(o, l + 1);
       if(ins == ch) return this;
       nw = ins;
-    } else nw = o;
+    } else {
+      nw = o;
+    }
 
     final TrieNode[] ks = copyKids();
     ks[k] = nw;
@@ -139,7 +169,9 @@ final class Branch extends TrieNode {
       if(ins == ch) return this;
       n = ins.size - ch.size;
       nw = ins;
-    } else nw = o;
+    } else {
+      nw = o;
+    }
 
     final TrieNode[] ks = copyKids();
     ks[k] = nw;
@@ -157,7 +189,9 @@ final class Branch extends TrieNode {
       if(ok != null) {
         final TrieNode nw = k == null ? ok : ok.addAll(k, l + 1);
         if(nw != k) {
-          if(ch == null) ch = copyKids();
+          if(ch == null) {
+            ch = copyKids();
+          }
           ch[i] = nw;
           nu |= 1 << i;
           ns += nw.size - (k == null ? 0 : k.size);
@@ -173,14 +207,18 @@ final class Branch extends TrieNode {
     for(int i = 0; i < KIDS; i++) {
       final boolean bit = (used & 1 << i) != 0, act = kids[i] != null;
       if(bit ^ act) return false;
-      if(act) c += kids[i].size;
+      if(act) {
+        c += kids[i].size;
+      }
     }
     return c == size;
   }
 
   @Override
   StringBuilder toString(final StringBuilder sb) {
-    for(int i = 0; i < KIDS; i++) if(kids[i] != null) kids[i].toString(sb);
+    for(int i = 0; i < KIDS; i++) if(kids[i] != null) {
+      kids[i].toString(sb);
+    }
     return sb;
   }
 
@@ -197,8 +235,10 @@ final class Branch extends TrieNode {
   @Override
   public int hashCode() {
     int h = 1;
-    for(int i = 0; i < kids.length; i++)
+    for(int i = 0; i < kids.length; i++) {
       h = 31 * h + (kids[i] == null ? 0 : kids[i].hashCode());
+    }
     return h;
   }
+
 }

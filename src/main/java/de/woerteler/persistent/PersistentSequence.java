@@ -1,6 +1,7 @@
 package de.woerteler.persistent;
 
-import java.util.*;
+import java.util.NoSuchElementException;
+import java.util.RandomAccess;
 
 /**
  * An interface for immutable sequences.
@@ -10,7 +11,7 @@ import java.util.*;
  * @author Leo Woerteler
  * @param <E> element type
  */
-public interface PersistentSequence<E> extends Iterable<E> {
+public interface PersistentSequence<E> extends Iterable<E>, RandomAccess {
   /**
    * Adds an item at the end of the sequence.
    * @param item item to be added
@@ -25,6 +26,23 @@ public interface PersistentSequence<E> extends Iterable<E> {
    * @return a sequence where the items of {@code sequence} are appended to this sequence
    */
   PersistentSequence<E> append(final PersistentSequence<? extends E> sequence);
+
+  /**
+   * Returns the first index of the given element if it exists in the sequence.
+   * 
+   * @param elem The element.
+   * @return The first index of the element or <code>-1</code> if the element is
+   *         not contained.
+   */
+  int indexOf(E elem);
+
+  /**
+   * Whether the sequence contains the given element.
+   * 
+   * @param elem The element.
+   * @return Whether the sequence contains it.
+   */
+  boolean contains(E elem);
 
   /**
    * Gets the element at the given position in the sequence.
