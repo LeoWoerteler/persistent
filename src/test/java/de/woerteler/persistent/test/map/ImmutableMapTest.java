@@ -371,7 +371,6 @@ public class ImmutableMapTest {
   }
 
   /** Tests {@link ImmutableMap#addAll(ImmutableMap)} of nodes into an empty node. */
-  @SuppressWarnings("unchecked")
   @Test public void addEmpty() {
     final ImmutableMap<Number, Number> empty = mapFrom(), leaf = mapFromPairs(0, 1),
         list = mapFromPairs(0, 2, 0L, 2), branch = mapFromPairs(0, 3, 1, 3);
@@ -385,7 +384,6 @@ public class ImmutableMapTest {
   }
 
   /** Tests {@link ImmutableMap#equals(Object)} between different node types. */
-  @SuppressWarnings("unchecked")
   @Test public void crossEquals() {
     final ImmutableMap<Number, Number> empty = mapFrom(), leaf = mapFromPairs(0, 1),
         list = mapFromPairs(0, 2, 0L, 2), branch = mapFromPairs(0, 3, 1, 3);

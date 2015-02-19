@@ -92,6 +92,7 @@ public final class TrieSequence<T> implements PersistentSequence<T>, RandomAcces
    * @param array The array.
    * @return The sequence containing all elements from the array in the same order.
    */
+  @SuppressWarnings("unchecked")
   public static <T> TrieSequence<T> from(final T... array) {
     if(array.length == 0) return empty();
     Node root = null;
