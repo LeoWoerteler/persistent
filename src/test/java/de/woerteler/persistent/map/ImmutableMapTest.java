@@ -1,13 +1,11 @@
-package de.woerteler.persistent.test.map;
+package de.woerteler.persistent.map;
 
 import static org.junit.Assert.*;
-import static de.woerteler.persistent.test.TrieSequenceTest.equalsWithHash;
+import static de.woerteler.persistent.TrieSequenceTest.*;
 
 import java.util.*;
 
 import org.junit.*;
-
-import de.woerteler.persistent.map.*;
 
 /**
  * Tests for the {@link ImmutableMap} data structure.

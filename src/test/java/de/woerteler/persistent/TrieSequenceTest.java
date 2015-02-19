@@ -1,9 +1,8 @@
-package de.woerteler.persistent.test;
+package de.woerteler.persistent;
 
 import java.util.*;
 
 import org.junit.*;
-import de.woerteler.persistent.TrieSequence;
 import static org.junit.Assert.*;
 
 /**
