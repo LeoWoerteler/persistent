@@ -130,14 +130,10 @@ public final class IntArrayBuilder {
       return sb.append(']').toString();
     }
 
-    if(inLeft > 0) {
-      final int first = (mid - inLeft + CAP) % CAP;
-      sb.append(vals[first]);
-      for(int i = 1; i < inLeft; i++) sb.append(", ").append(vals[(first + i) % CAP]);
-      sb.append(", ");
-    }
-
-    tree.toString(sb);
+    final int first = (mid - inLeft + CAP) % CAP;
+    sb.append(vals[first]);
+    for(int i = 1; i < inLeft; i++) sb.append(", ").append(vals[(first + i) % CAP]);
+    for(final Integer val : tree) sb.append(", ").append(val);
     for(int i = 0; i < inRight; i++) sb.append(", ").append(vals[(mid + i) % CAP]);
     return sb.append(']').toString();
   }
