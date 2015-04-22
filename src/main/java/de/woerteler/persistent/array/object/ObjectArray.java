@@ -16,13 +16,13 @@ public final class ObjectArray<E> extends Array<E> {
   private static final ObjectArray<?> EMPTY = new ObjectArray<>(FingerTree.empty());
 
   /** Root node. */
-  private final FingerTree<E, E> root;
+  final FingerTree<E, E> root;
 
   /**
    * Constructor.
    * @param root root node
    */
-  private ObjectArray(final FingerTree<E, E> root) {
+  ObjectArray(final FingerTree<E, E> root) {
     this.root = root;
   }
   /**
@@ -209,7 +209,7 @@ public final class ObjectArray<E> extends Array<E> {
    *
    * @param <E> element type
    */
-  private static class Leaf<E> implements Node<E, E> {
+  static class Leaf<E> implements Node<E, E> {
     /** The element. */
     private final E elem;
 
